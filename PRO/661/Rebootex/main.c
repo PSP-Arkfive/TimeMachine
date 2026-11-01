@@ -9,8 +9,6 @@
 #include <fat.h>
 #include <syscon.h>
 
-#include "psp_uart.h"
-
 #define REG32(addr) *((volatile uint32_t *)(addr))
 
 BootLoadExConfig bleconfig = {

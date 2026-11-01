@@ -11,7 +11,6 @@
 #include <rebootexconfig.h>
 #include <bootloadex.h>
 
-#include <rebootex_conf.h>
 #include <rebootex.h>
 
 PSP_MODULE_INFO("Reboot661PRO", PSP_MODULE_KERNEL | PSP_MODULE_SINGLE_START | PSP_MODULE_SINGLE_LOAD, 1, 0);
@@ -20,7 +19,7 @@ int (* decodeKL4E)(void * arg1, unsigned int arg2, void * arg3, unsigned int arg
 
 void build_rebootex_configure(void)
 {
-	rebootex_config *conf = (rebootex_config *)(REBOOTEX_CONFIG);
+	RebootexConfigPRO *conf = (RebootexConfigPRO *)(REBOOTEX_CONFIG);
 
 	conf->magic = REBOOTEX_CONFIG_MAGIC;
 	conf->psp_model = sceKernelGetModel();
@@ -36,7 +35,7 @@ int LoadReboot(void * arg1, unsigned int arg2, void * arg3, unsigned int arg4)
 
     build_rebootex_configure();
 
-    sceKernelGzipDecompress((unsigned char *)REBOOTEX_START, REBOOTEX_MAX_SIZE, rebootex, NULL);
+    sceKernelGzipDecompress((unsigned char *)REBOOTEX_TEXT, REBOOTEX_MAX_SIZE, rebootex, NULL);
 
     return decodeKL4E(arg1, arg2, arg3, arg4);
 }
