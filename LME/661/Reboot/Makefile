@@ -23,6 +23,6 @@ LIBDIR =
 LDFLAGS = -nostartfiles
 LIBS = -larkctrl -lpspsystemctrl_kernel
 
-PSP_FW_VERSION = 660
+PSP_FW_VERSION = 661
 
 include $(PSPSDK)/lib/build.mak

@@ -40,7 +40,7 @@ typedef struct FlashEmuPrivate
     } uni;
 } FlashEmuPrivate;
 
-#if PSP_FW_VERSION >= 660
+#if _PSP_FW_VERSION >= 660
 
 static int read_cptbl_ciso(void* arg, void* addr, u32 size, u32 offset);
 
@@ -479,7 +479,7 @@ static SceSSize FlashEmu_IoWrite(SceIoIob *iob, void *data, SceSize len)
 static SceSSize FlashEmu_IoRead(SceIoIob *iob, void *data, SceSize len)
 {
     FlashEmuPrivate *fep = iob->i_private;
-#if PSP_FW_VERSION >= 660
+#if _PSP_FW_VERSION >= 660
     if (fep->virtual)
     {
         int res = ciso_read(&g_ciso_file, data, len, fep->uni.virtualinfo.offset);
@@ -642,7 +642,19 @@ static int FlashEmu_IoInit(SceIoDeviceEntry* de)
 
 int sceLFatFsDevkitVersion()
 {
+#if _PSP_FW_VERSION == 661
     return 0x6060110;
+#elif _PSP_FW_VERSION == 660
+    return 0x6060010;
+#elif _PSP_FW_VERSION == 639
+    return 0x6030910;
+#elif _PSP_FW_VERSION == 620
+    return 0x6020010;
+#elif _PSP_FW_VERSION == 500
+    return 0x5000010;
+#else
+    #error devkit version
+#endif
 }
 
 int sceLFatFs_driver_F1FBA85F()
@@ -753,7 +765,7 @@ int InstallFlashEmu()
 {
     if (!installed)
     {
-#if PSP_FW_VERSION >= 660
+#if _PSP_FW_VERSION >= 660
         int res = ciso_open(&g_ciso_file);
 #endif
         sceIoAddDrv(&lflashDrv);
@@ -781,7 +793,7 @@ int UninstallFlashEmu()
 
 void PrepareRebootFlashEmu()
 {
-#if PSP_FW_VERSION > 660
+#if _PSP_FW_VERSION > 660
     ciso_close(&g_ciso_file);
 #endif
     sceIoUnassign("flash0:");

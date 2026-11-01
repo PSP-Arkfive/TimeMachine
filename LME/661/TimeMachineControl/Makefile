@@ -40,7 +40,7 @@ LIBDIR =
 LDFLAGS = -nostartfiles
 LIBS = -lcisoread -lpspsystemctrl_kernel -lpspsemaphore_660
 
-PSP_FW_VERSION = 660
+PSP_FW_VERSION = 661
 
 PSPSDK=$(shell psp-config --pspsdk-path)
 include $(PSPSDK)/lib/build.mak
