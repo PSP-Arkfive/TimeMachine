@@ -1,0 +1,8 @@
+*.o
+*.bin
+*.bin.gz
+*.elf
+*.prx
+
+PRO/661/Rebootex/rebootex.h
+PRO/661/TimeMachineControl/*.h
