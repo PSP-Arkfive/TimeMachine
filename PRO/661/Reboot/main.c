@@ -21,7 +21,7 @@ void build_rebootex_configure(void)
 {
 	RebootexConfigPRO *conf = (RebootexConfigPRO *)(REBOOTEX_CONFIG);
 
-	conf->magic = REBOOTEX_CONFIG_MAGIC;
+	conf->magic = REBOOTEX_CONFIG_MAGIC_PRO;
 	conf->psp_model = sceKernelGetModel();
 	conf->rebootex_size = size_rebootex;
 	conf->psp_fw_version = sceKernelDevkitVersion();
