@@ -1,13 +1,13 @@
 all:
 	make -C ARK
-	make -C Epinephine
+	make -C Epinephrine
 	mkdir -p dist/TM/
 	mkdir dist/TM/V661EPI
 	mkdir dist/TM/V661ARK
 	cp ARK/reboot.prx dist/TM/V661ARK/
-	cp Epinephine/reboot.prx dist/TM/V661EPI/
+	cp Epinephrine/reboot.prx dist/TM/V661EPI/
 
 clean:
 	make -C ARK clean
-	make -C Epinephine clean
+	make -C Epinephrine clean
 	rm -rf dist/
