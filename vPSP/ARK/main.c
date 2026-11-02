@@ -11,7 +11,7 @@
 #include <rebootexconfig.h>
 #include <bootloadex.h>
 
-#include "payload.h"
+#include "rebootex.h"
 
 PSP_MODULE_INFO("Reboot661_VPSP_ARK", PSP_MODULE_KERNEL | PSP_MODULE_SINGLE_START | PSP_MODULE_SINGLE_LOAD, 1, 0);
 
