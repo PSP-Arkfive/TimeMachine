@@ -79,7 +79,7 @@ int module_start(SceSize args, void *argp)
 
     InstallFlashEmu();
     previous = sctrlHENSetStartModuleHandler(OnModuleStart);
-    sctrlHENSetRebootexOverride(rebootex);
+    sctrlHENSetRebootexOverride(rebootex, size_rebootex);
     fix_sigcheck();
     ClearCaches();
 
