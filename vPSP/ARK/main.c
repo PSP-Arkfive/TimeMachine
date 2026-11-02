@@ -28,14 +28,12 @@ ARKConfig arkconf = {
     .recovery = 0,
 };
 
+RebootexConfigARK reboot_conf = {
+    .magic = ARK_CONFIG_MAGIC
+};
+
 int module_start(SceSize args, void *argp)
 {
-    RebootexConfigARK *reboot_conf = (void *)REBOOTEX_CONFIG;
-    memset(reboot_conf, 0, sizeof(RebootexConfigARK));
-    reboot_conf->magic = ARK_CONFIG_MAGIC;
-
-    memcpy((void*)ARK_CONFIG, &arkconf, sizeof(ARKConfig));
-
     SceUID fd = sceIoOpen(FLASH0_ARK_PATH, PSP_O_RDONLY, 0777);
     if (fd < 0) return fd;
 
@@ -44,7 +42,9 @@ int module_start(SceSize args, void *argp)
     if (read_bytes < 0) return read_bytes;
     if (read_bytes == 0) return -1;
 
-    sctrlHENSetRebootexOverride(rebootbuffer_pentazemin);
+    sctrlHENSetRebootexOverride(rebootbuffer_pentazemin, size_rebootbuffer_pentazemin);
+    sctrlHENSetRebootexConfigOverride(&reboot_conf, sizeof(RebootexConfigARK));
+    memcpy((void*)ARK_CONFIG, &arkconf, sizeof(ARKConfig));
     return 0;
 }
 
