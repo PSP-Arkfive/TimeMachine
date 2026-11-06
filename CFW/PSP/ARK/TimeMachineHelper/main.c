@@ -24,7 +24,6 @@ char* pspTimeMachineGetPath(){
 
 int module_start(SceSize args, void *argp)
 {
-
     if (size_rebootbuffer_ms_psp == 0) return -1;
 
     sctrlHENSetRebootexOverride(rebootbuffer_ms_psp, size_rebootbuffer_ms_psp);
