@@ -17,6 +17,8 @@ typedef struct FakeIob
     int dummy;
 } FakeIob;
 
+extern char *tm_path;
+
 int InstallFlashEmu();
 int UninstallFlashEmu();
 void PrepareRebootFlashEmu();

@@ -8,7 +8,6 @@
 #include <pspinit.h>
 #include <psputilsforkernel.h>
 
-#include <systemctrl_ark.h>
 #include <systemctrl_se.h>
 #include <ciso.h>
 
@@ -93,7 +92,6 @@ SceIoDeviceEntry *getMSEntry()
     return ms0;
 }
 
-static char *tm_path = ARK_DC_PATH;
 
 static void SetupFakeIob(FakeIob *fake_iob, SceIoIob *iob, SceIoDeviceEntry *de, void *arg)
 {

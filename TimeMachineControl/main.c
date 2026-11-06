@@ -13,11 +13,11 @@
 #include <cfwmacros.h>
 
 #include "flashemu.h"
-#include <payload.h>
 
 PSP_MODULE_INFO("TimeMachine_Control", PSP_MODULE_KERNEL | PSP_MODULE_SINGLE_START | PSP_MODULE_SINGLE_LOAD | PSP_MODULE_NO_STOP, 1, 0);
 
 int psp_model = 0;
+char *tm_path = NULL;
 
 int SysEventHandler(int eventId, char *eventName, void *param, int *result);
 
@@ -64,13 +64,13 @@ int OnModuleStart(SceModule *mod)
 
 int module_start(SceSize args, void *argp)
 {
+    char* (*getTmPath)() = (char* (*)())sctrlHENFindFunction("TimeMachine_Helper", "TimeMachineHelper", 0x7B4B5603);
+    if (getTmPath == NULL) return -1;
 
-    if (size_rebootbuffer_ms_psp == 0) return -1;
-
+    tm_path = getTmPath();
     psp_model = sceKernelGetModel();
     InstallFlashEmu();
     previous = sctrlHENSetStartModuleHandler(OnModuleStart);
-    sctrlHENSetRebootexOverride(rebootbuffer_ms_psp, size_rebootbuffer_ms_psp);
     ClearCaches();
 
     return 0;
