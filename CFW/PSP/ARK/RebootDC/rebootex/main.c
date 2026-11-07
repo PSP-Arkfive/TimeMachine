@@ -14,7 +14,7 @@
 ARKConfig arkconf = {
     .magic = ARK_CONFIG_MAGIC,
     .arkpath = DEFAULT_ARK_PATH_DC, // default path for ARK files
-    .exploit_id = DC_EXPLOIT_ID,
+    .exploit_id = "TimeMachine", // exploit name
     .launcher = {0},
     .exec_mode = PSP_ORIG, // run ARK in PSP mode
     .recovery = 0,
