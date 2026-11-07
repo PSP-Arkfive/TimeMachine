@@ -22,11 +22,12 @@ char *tm_path = NULL;
 int SysEventHandler(int eventId, char *eventName, void *param, int *result);
 
 PspSysEventHandler sysEventHandler =
-    {
-        .size = sizeof(PspSysEventHandler),
-        .name = "",
-        .type_mask = 0x00FFFF00,
-        .handler = SysEventHandler};
+{
+    .size = sizeof(PspSysEventHandler),
+    .name = "",
+    .type_mask = 0x00FFFF00,
+    .handler = SysEventHandler
+};
 
 extern SceUID flashemu_sema;
 extern int msNotReady;
