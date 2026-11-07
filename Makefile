@@ -45,6 +45,8 @@ clean:
 	$(MAKE) -C CFW/PSP/ARK/150/Reboot150 clean
 	$(MAKE) -C CFW/PSP/ARK/150/TimeMachine150 clean
 	$(MAKE) -C CFW/PSP/ARK/TimeMachineHelper clean
+	$(MAKE) -C CFW/PSP/ARK/RebootDC/rebootex clean
+	$(MAKE) -C CFW/PSP/ARK/RebootDC clean
 	$(MAKE) -C CFW/PSP/PRO/661/Rebootex clean
 	$(MAKE) -C CFW/PSP/PRO/661/Reboot clean
 	$(MAKE) -C CFW/PSP/PRO/661/TimeMachineHelper clean
