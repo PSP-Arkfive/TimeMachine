@@ -8,6 +8,8 @@ tmctrl:
 cfw-psp:
 	$(MAKE) -C CFW/PSP/ARK/150/Reboot150
 	$(MAKE) -C CFW/PSP/ARK/150/TimeMachine150
+	$(MAKE) -C CFW/PSP/ARK/RebootDC/rebootex
+	$(MAKE) -C CFW/PSP/ARK/RebootDC
 	$(MAKE) -C CFW/PSP/ARK/TimeMachineHelper
 	$(MAKE) -C CFW/PSP/PRO/661/Rebootex
 	$(MAKE) -C CFW/PSP/PRO/661/Reboot
@@ -29,6 +31,7 @@ copy-dist:
 	mkdir -p dist/TM/V661ARK
 	cp TimeMachineControl/tmctrl.prx dist/TM/
 	cp CFW/PSP/ARK/TimeMachineHelper/tmhlpr.prx dist/TM/DCARK/
+	cp CFW/PSP/ARK/RebootDC/reboot.prx dist/TM/DCARK/
 	cp CFW/PSP/ARK/150/Reboot150/reboot150.prx dist/TM/DCARK/150/
 	cp CFW/PSP/ARK/150/TimeMachine150/tmctrl150.prx dist/TM/DCARK/150/
 	cp CFW/PSP/PRO/661/Reboot/reboot.prx dist/TM/661PRO/
