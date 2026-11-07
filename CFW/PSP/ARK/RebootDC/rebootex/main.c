@@ -8,7 +8,6 @@
 
 #include <fat.h>
 #include <syscon.h>
-#include <comms.h>
 
 
 ARKConfig arkconf = {
@@ -19,7 +18,6 @@ ARKConfig arkconf = {
     .exec_mode = PSP_ORIG, // run ARK in PSP mode
     .recovery = 0,
 };
-
 
 BootLoadExConfig bleconf = {
     .boot_type = TYPE_REBOOTEX,
@@ -41,6 +39,14 @@ BootLoadExConfig bleconf = {
 int cfwBoot(int arg1, int arg2, int arg3, int arg4, int arg5, int arg6, int arg7)
 {
 
+    // GPIO enable
+    REG32(0xbc10007c) |= 0xc8;
+    __asm("sync"::);
+    
+    syscon_init();
+    syscon_ctrl_ms_power(1);
+
+    // Configure ARK
     memcpy(ark_config, &arkconf, sizeof(ARKConfig));
 
     // Configure

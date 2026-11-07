@@ -9,7 +9,6 @@
 #include <fat.h>
 #include <syscon.h>
 
-#define REG32(addr) *((volatile uint32_t *)(addr))
 
 BootLoadExConfig bleconfig = {
     .boot_type = TYPE_REBOOTEX,
