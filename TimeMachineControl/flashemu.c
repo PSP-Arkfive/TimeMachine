@@ -42,10 +42,23 @@ typedef struct FlashEmuPrivate
 } FlashEmuPrivate;
 
 // cptbl ciso data
+/*CisoFile g_ciso_file = {
+    .read_data = &read_cptbl_ciso,
+    .memalign = &oe_memalign, // oe_memalign is only available in ARK
+    .free = &oe_free,
+};*/
+
+unsigned char block_buf[2048]; // 2K blocks
+unsigned char dec_buf[2048];
+uint32_t idx_cache[64];
+
 CisoFile g_ciso_file = {
     .read_data = &read_cptbl_ciso,
-    .memalign = &oe_memalign,
-    .free = &oe_free,
+    .block_buf = block_buf,
+    .dec_buf = dec_buf,
+    .idx_cache = idx_cache,
+    .idx_start_block = -1, // this is important when doing static buffers
+    .idx_cache_num = 64,
 };
 
 static int read_cptbl_ciso(void* arg, void* addr, u32 size, u32 offset)

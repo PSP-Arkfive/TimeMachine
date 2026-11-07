@@ -42,6 +42,7 @@ copy-dist:
 	cp CFW/vPSP/EPI/reboot.prx dist/TM/V661EPI/
 
 clean:
+	$(MAKE) -C TimeMachineControl clean
 	$(MAKE) -C CFW/PSP/ARK/150/Reboot150 clean
 	$(MAKE) -C CFW/PSP/ARK/150/TimeMachine150 clean
 	$(MAKE) -C CFW/PSP/ARK/TimeMachineHelper clean
