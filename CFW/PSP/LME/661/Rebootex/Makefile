@@ -34,6 +34,6 @@ $(TARGET): main.elf
 	@echo GET $@
 
 clean:
-	rm -rf *~ *.s *.o *.elf reboot.bin reboot.bin.gz payload.h $(EXTRA_CLEAN)
+	rm -rf *~ *.s *.o *.elf reboot.bin reboot.bin.gz rebootex.h $(EXTRA_CLEAN)
 
 include $(CFWSDK)/build-tools/beauty_bin.mak

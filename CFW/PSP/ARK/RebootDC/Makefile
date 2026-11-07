@@ -34,5 +34,5 @@ PSPSDK=$(shell psp-config --pspsdk-path)
 include $(PSPSDK)/lib/build.mak
 
 clean:
-	rm -rf *.o *.elf *.prx exports.o exports.c tmctrl.h cptbl.h
+	rm -rf *.o *.elf *.prx exports.o exports.c
 	make -C rebootex clean
