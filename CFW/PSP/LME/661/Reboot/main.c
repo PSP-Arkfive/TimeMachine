@@ -20,7 +20,7 @@ int (* decodeKL4E)(void * arg1, unsigned int arg2, void * arg3, unsigned int arg
 int LoadReboot(void * arg1, unsigned int arg2, void * arg3, unsigned int arg4)
 {
     //reset reboot flags
-	memset((char *)REBOOTEX_CONFIG, 0, 0x100);
+	memset((char *)REBOOTEX_CONFIG, 0, sizeof(RebootexConfigLME));
 
     sceKernelGzipDecompress((unsigned char *)REBOOTEX_TEXT, REBOOTEX_MAX_SIZE, rebootex, NULL);
 
