@@ -10,7 +10,10 @@
 #include <fat.h>
 #include <syscon.h>
 
-#define REG32(addr) *((volatile uint32_t *)(addr))
+#ifdef DEBUG
+#include <colordebugger.h>
+#endif
+
 
 BootLoadExConfig bleconfig = {
     .boot_type = TYPE_REBOOTEX,
@@ -26,7 +29,6 @@ BootLoadExConfig bleconfig = {
     },
     .UnpackBootConfig = &UnpackBootConfigLMEPSP,
     .extraPRXDecrypt = &LMEPRXDecrypt,
-    //.extraCheckExecFile = &LMECheckExec,
 };
 
 // Entry Point
