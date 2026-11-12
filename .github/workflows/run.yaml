@@ -27,27 +27,20 @@ jobs:
       - name: Bootstrap sdk and build
         working-directory: pspsdk
         run: |
-          bash ./bootstrap
-          ./configure
-          make
-          make install
+          ./build-and-install.sh
 
       - name: Checkout
         uses: actions/checkout@v7
         with:
           submodules: recursive
 
-      - name: Checkout psp-cfw-sdk branch
-        uses: actions/checkout@v7
-        with:
-          repository: 'pspdev/psp-cfw-sdk.git'
-          ref: bootloadex_tmhlpr
-          path: psp-cfw-sdk
+      - name: Clone psp-cfw-sdk custom branch
+        run: |
+          git clone -b bootloadex_tmhlpr --single-branch https://github.com/pspdev/psp-cfw-sdk.git
 
       - name: Build psp-cfw-sdk
         working-directory: psp-cfw-sdk
         run: |
-          export PATH=$PATH:/usr/local/pspdev/bin
           make
           sudo make install
         env:
