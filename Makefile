@@ -1,5 +1,9 @@
 .PHONY: all clean
 
+PY = $(shell which python3)
+PSPDEV = $(shell psp-config --pspdev-path)
+BUILDTOOLS = $(PSPDEV)/share/psp-cfw-sdk/build-tools
+
 all: tmctrl cfw-psp cfw-vpsp copy-dist
 
 tmctrl:
@@ -40,6 +44,7 @@ copy-dist:
 	cp CFW/PSP/LME/661/TimeMachineHelper/tmhlpr.prx dist/TM/661LME/
 	cp CFW/vPSP/ARK/reboot.prx dist/TM/V661ARK/
 	cp CFW/vPSP/EPI/reboot.prx dist/TM/V661EPI/
+	$(PY) $(BUILDTOOLS)/pack/pack.py -p dist/TM.PKG package.txt -s
 
 clean:
 	$(MAKE) -C TimeMachineControl clean
