@@ -40,7 +40,7 @@ jobs:
       - name: Checkout psp-cfw-sdk branch
         uses: actions/checkout@v7
         with:
-          repository: 'https://github.com/pspdev/psp-cfw-sdk.git'
+          repository: 'pspdev/psp-cfw-sdk.git'
           ref: bootloadex_tmhlpr
 
       - name: Build psp-cfw-sdk
@@ -48,6 +48,8 @@ jobs:
         run: |
           make
           sudo make install
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build
         run: |
