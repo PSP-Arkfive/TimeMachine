@@ -1,4 +1,4 @@
-name: ARK-5
+name: TimeMachine
 on:
   push:
     branches:
