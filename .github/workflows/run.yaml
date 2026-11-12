@@ -40,6 +40,8 @@ jobs:
           sudo make install
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PSPDEV: /usr/local/pspdev
+          PATH: /usr/local/pspdev/bin:/usr/local/bin:/usr/bin:/bin
 
       - name: Checkout
         uses: actions/checkout@v7
