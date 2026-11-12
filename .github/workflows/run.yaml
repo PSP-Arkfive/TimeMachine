@@ -33,11 +33,12 @@ jobs:
           make install
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           submodules: recursive
 
       - name: Checkout psp-cfw-sdk branch
+        uses: actions/checkout@v7
         with:
           repository: 'https://github.com/pspdev/psp-cfw-sdk.git'
           ref: bootloadex_tmhlpr
