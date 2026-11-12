@@ -42,6 +42,7 @@ jobs:
         with:
           repository: 'pspdev/psp-cfw-sdk.git'
           ref: bootloadex_tmhlpr
+          path: psp-cfw-sdk
 
       - name: Build psp-cfw-sdk
         working-directory: psp-cfw-sdk
