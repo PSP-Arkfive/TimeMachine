@@ -37,11 +37,16 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Update psp-cfw-sdk
-        run: curl -OJL "https://github.com/pspdev/psp-cfw-sdk/releases/download/latest/psp-cfw-sdk.zip"
+      - name: Checkout psp-cfw-sdk branch
+        with:
+          repository: 'https://github.com/pspdev/psp-cfw-sdk.git'
+          ref: bootloadex_tmhlpr
 
-      - name: Extract psp-cfw-sdk
-        run: sudo unzip -o psp-cfw-sdk.zip -d /
+      - name: Build psp-cfw-sdk
+        working-directory: psp-cfw-sdk
+        run: |
+          make
+          sudo make install
 
       - name: Build
         run: |
