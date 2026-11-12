@@ -47,6 +47,7 @@ jobs:
       - name: Build psp-cfw-sdk
         working-directory: psp-cfw-sdk
         run: |
+          export PATH=$PATH:/usr/local/pspdev/bin
           make
           sudo make install
         env:
