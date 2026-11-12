@@ -1,0 +1,77 @@
+name: ARK-5
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    paths-ignore:
+      - 'README.md'
+      - 'LICENSE'
+      - '**/README.md'
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: pspdev/pspdev
+    steps:
+      - name: Dependencies
+        run: |
+          apk add clang build-base automake autoconf zlib-dev python3 zip curl unzip sudo gcc g++
+
+      - name: Cloning and Building lastest pspsdk
+        run: |
+          git clone https://github.com/pspdev/pspsdk
+
+      - name: Bootstrap sdk and build
+        working-directory: pspsdk
+        run: |
+          bash ./bootstrap
+          ./configure
+          make
+          make install
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Update psp-cfw-sdk
+        run: curl -OJL "https://github.com/pspdev/psp-cfw-sdk/releases/download/latest/psp-cfw-sdk.zip"
+
+      - name: Extract psp-cfw-sdk
+        run: sudo unzip -o psp-cfw-sdk.zip -d /
+
+      - name: Build
+        run: |
+          make
+
+      - name: Compress
+        run: |
+          cd dist
+          zip -r ../TM.zip .
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: tm-release
+          path: TM.zip
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: tm-release
+          path: .
+      - name:
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: latest
+          name: TM Release
+          files: TM.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
