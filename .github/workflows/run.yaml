@@ -29,11 +29,6 @@ jobs:
         run: |
           ./build-and-install.sh
 
-      - name: Checkout
-        uses: actions/checkout@v7
-        with:
-          submodules: recursive
-
       - name: Clone psp-cfw-sdk custom branch
         run: |
           git clone -b bootloadex_tmhlpr --single-branch https://github.com/pspdev/psp-cfw-sdk.git
@@ -45,6 +40,11 @@ jobs:
           sudo make install
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
 
       - name: Build
         run: |
