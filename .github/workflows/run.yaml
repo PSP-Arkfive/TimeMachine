@@ -28,6 +28,9 @@ jobs:
         working-directory: pspsdk
         run: |
           ./build-and-install.sh
+        env:
+          PSPDEV: /usr/local/pspdev
+          PATH: /usr/local/pspdev/bin:/usr/local/bin:/usr/bin:/bin
 
       - name: Clone psp-cfw-sdk custom branch
         run: |
@@ -37,9 +40,8 @@ jobs:
         working-directory: psp-cfw-sdk
         run: |
           make
-          sudo make install
+          make install
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PSPDEV: /usr/local/pspdev
           PATH: /usr/local/pspdev/bin:/usr/local/bin:/usr/bin:/bin
 
