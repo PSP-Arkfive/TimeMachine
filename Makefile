@@ -3,13 +3,30 @@
 PY = $(shell which python3)
 PSPDEV = $(shell psp-config --pspdev-path)
 BUILDTOOLS = $(PSPDEV)/share/psp-cfw-sdk/build-tools
+RESOURCE_DIR = tmp
+LIBS_DIR = $(RESOURCE_DIR)/LIBS
+TM_FLASH_DIR = $(RESOURCE_DIR)/TM
+LIBS_ARCHIVE = $(RESOURCE_DIR)/LIBS.zip
+LIBS_URL = https://github.com/pspdev/psp-dynamic-libraries/releases/download/latest/LIBS.zip
+PRO_TM_URL = https://github.com/psp-arkfive/pro-d/releases/download/latest/pro-d.zip
+LME_TM_URL = https://github.com/psp-arkfive/lme-3/releases/download/latest/lme-3.zip
 
 all: tmctrl cfw-psp cfw-vpsp installer copy-dist
 
 installer:
+	mkdir $(RESOURCE_DIR) || true
+	mkdir $(TM_FLASH_DIR) || true
+	curl --fail --location --silent --show-error "$(LIBS_URL)" -o "$(LIBS_ARCHIVE)"
+	curl --fail --location --silent --show-error "$(PRO_TM_URL)" -o "$(TM_FLASH_DIR)/PRO-D.zip"
+	curl --fail --location --silent --show-error "$(LME_TM_URL)" -o "$(TM_FLASH_DIR)/LME-3.zip"
+	unzip -o "$(LIBS_ARCHIVE)" -d "$(LIBS_DIR)"
+	unzip -o "$(TM_FLASH_DIR)/PRO-D.zip" -d "$(TM_FLASH_DIR)"
+	unzip -o "$(TM_FLASH_DIR)/LME-3.zip" -d "$(TM_FLASH_DIR)"
+
 	$(MAKE) -C Installer
 
 tmctrl:
+
 	$(MAKE) -C TimeMachineControl
 
 cfw-psp:
@@ -56,6 +73,12 @@ copy-dist:
 	$(PY) $(BUILDTOOLS)/pack/pack.py -p dist/TM.PKG package.txt -s
 	mkdir -p dist/PSP/GAME/TMINSTALLER
 	cp Installer/EBOOT.PBP dist/TM.PKG dist/PSP/GAME/TMINSTALLER/
+	cp $(LIBS_DIR)/pspdecrypt.prx dist/PSP/GAME/TMINSTALLER/
+	cp $(LIBS_DIR)/vlf.prx dist/PSP/GAME/TMINSTALLER/
+	cp $(LIBS_DIR)/intraFont-vlf.prx dist/PSP/GAME/TMINSTALLER/
+	cp $(LIBS_DIR)/libpsardumper.prx dist/PSP/GAME/TMINSTALLER/
+	cp $(TM_FLASH_DIR)/FLASH661.PRO dist/PSP/GAME/TMINSTALLER/
+	cp $(TM_FLASH_DIR)/FLASH661.LME dist/PSP/GAME/TMINSTALLER/
 
 clean:
 	$(MAKE) -C Installer clean
@@ -77,3 +100,4 @@ clean:
 	$(MAKE) -C CFW/vPSP/TNV/Reboot clean
 	$(MAKE) -C CFW/vPSP/TNV/TimeMachineHelper clean
 	rm -rf dist
+	rm -rf $(RESOURCE_DIR)

@@ -1,84 +1,88 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdarg.h>
 #include <pspsdk.h>
 #include <pspkernel.h>
-#include <pspdebug.h>
+#include <pspdisplay.h>
+
 #include <kubridge.h>
 #include <vlf.h>
+#include <colordebugger.h>
+#include <tinyfont.h>
+
 
 extern int app_main(int argc, char *argv[]);
-extern char boot_path[256];
+extern char boot_path[];
 
-static void startup_error(const char *message, int error)
-{
-    pspDebugScreenInit();
-    pspDebugScreenPrintf("%s: 0x%08X\n", message, error);
-    sceKernelDelayThread(5000000);
-    sceKernelExitGame();
-}
-
-static int start_library(const char *name, SceSize args, void *argp)
-{
-    char path[128];
-    SceUID mod = kuKernelLoadModule(name, 0, NULL);
-    if (mod < 0) {
-        snprintf(path, sizeof(path), "ms0:/PSP/LIBS/%s", name);
-        mod = kuKernelLoadModule(path, 0, NULL);
-    }
-    if (mod < 0) {
-        snprintf(path, sizeof(path), "ef0:/PSP/LIBS/%s", name);
-        mod = kuKernelLoadModule(path, 0, NULL);
-    }
-    if (mod >= 0)
-        mod = sceKernelStartModule(mod, args, argp, NULL, NULL);
-    return mod;
-}
-
+//static void SimpleErrorExit(int milisecs, char* errortext, int errorcode){
+//    char msg[64];
+//    sceDisplaySetFrameBuf((void *)0x04000000, 512, PSP_DISPLAY_PIXEL_FORMAT_8888, 1);
+//    colorDebug(0);
+//    snprintf(msg, sizeof(msg), "ERROR: %s (%p)", (u32)errortext, (u32)errorcode);
+//    tinyFontPrintTextScreenBuf((void *)0x44000000, msx, 10, 10, msg, 0xFFFFFFFF, NULL);
+//    sceKernelDelayThread(milisecs*1000);
+//    sceKernelExitGame();
+//}
+//
 int start_thread(SceSize args, void *argp)
 {
-    const char *path = argp;
-    char *slash;
-    int result;
-    if (!path || !args || !memchr(path, 0, args) || strlen(path) >= sizeof(boot_path)) {
-        startup_error("Invalid installer path", -1);
-        return sceKernelExitDeleteThread(-1);
+    SceUID mod;
+    char *path = (char *)argp;
+    int last_trail = -1;
+    int i = 0;
+
+    if (path)
+    {
+        for (i = 0; path[i]; i++)
+        {
+        	boot_path[i] = path[i];
+        	if (path[i] == '/')
+        		last_trail = i;
+        }
     }
-    strcpy(boot_path, path);
-    slash = strrchr(boot_path, '/');
-    if (!slash) {
-        startup_error("Invalid installer path", -1);
-        return sceKernelExitDeleteThread(-1);
-    }
-    *slash = 0;
-    result = sceIoChdir(boot_path);
-    if (result < 0) {
-        startup_error("Cannot open installer directory", result);
-        return sceKernelExitDeleteThread(result);
-    }
-    result = start_library("intraFont-vlf.prx", args, argp);
-    if (result < 0) {
-        startup_error("Cannot load intraFont-vlf.prx", result);
-        return sceKernelExitDeleteThread(result);
-    }
-    result = start_library("vlf.prx", args, argp);
-    if (result < 0) {
-        startup_error("Cannot load vlf.prx", result);
-        return sceKernelExitDeleteThread(result);
-    }
+    
+    boot_path[i] = 0;
+
+    if (last_trail >= 0)
+        boot_path[last_trail] = 0;
+
+    sceIoChdir(boot_path);
+    
+	
+    // load intraFont-vlf
+    mod = kuKernelLoadModule("intraFont-vlf.prx", 0, NULL);
+    if (mod < 0) mod = kuKernelLoadModule("ms0:/PSP/LIBS/intraFont-vlf.prx", 0, NULL); // retry LIBS folder
+    if (mod < 0) mod = kuKernelLoadModule("ef0:/PSP/LIBS/intraFont-vlf.prx", 0, NULL); // retry LIBS folder ef0
+    //if (mod < 0) SimpleErrorExit(5000, "Filed to load module intraFont-vlf.prx", mod);
+
+    // start intraFont-vlf
+    mod = sceKernelStartModule(mod, args, argp, NULL, NULL);
+    //if (mod < 0) SimpleErrorExit(5000, "Filed to start module intraFont-vlf.prx", mod);
+
+    // load vlf
+    mod = kuKernelLoadModule("vlf.prx", 0, NULL);
+    if (mod < 0) mod = kuKernelLoadModule("ms0:/PSP/LIBS/vlf.prx", 0, NULL); // retry LIBS folder
+    if (mod < 0) mod = kuKernelLoadModule("ef0:/PSP/LIBS/vlf.prx", 0, NULL); // retry LIBS folder ef0
+    //if (mod < 0) SimpleErrorExit(5000, "Filed to load module vlf.prx", mod);
+
+    // start vlf
+    mod = sceKernelStartModule(mod, args, argp, NULL, NULL);
+    //if (mod < 0) SimpleErrorExit(5000, "Filed to start module vlf.prx", mod);
+
     vlfGuiInit(-1, app_main);
+    
     return sceKernelExitDeleteThread(0);
 }
 
 int module_start(SceSize args, void *argp)
 {
-    SceUID thread = sceKernelCreateThread("start_thread", start_thread, 0x10, 0x4000, 0, NULL);
-    int result;
-    if (thread < 0)
-        return thread;
-    result = sceKernelStartThread(thread, args, argp);
-    if (result < 0) {
-        sceKernelDeleteThread(thread);
-        return result;
-    }
+
+    SceUID thid = sceKernelCreateThread("start_thread", start_thread, 0x10, 0x4000, 0, NULL);
+
+    if (thid < 0)
+        return thid;
+
+    sceKernelStartThread(thid, args, argp);
+    
     return 0;
 }
