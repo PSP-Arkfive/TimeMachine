@@ -44,7 +44,7 @@ int module_start(SceSize args, void *argp)
     if (tmhlpr_read_bytes < 0) return tmhlpr_read_bytes;
     if (tmhlpr_read_bytes == 0) return -1;
 
-    conf.module_after;
+    conf.module_after = "/kd/init.prx";
     conf.buf = tmhlpr_buf;
     conf.size = tmhlpr_read_bytes;
     conf.flags = 0x000000EF;
