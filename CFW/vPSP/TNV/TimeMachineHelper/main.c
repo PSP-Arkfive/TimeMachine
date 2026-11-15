@@ -27,6 +27,12 @@ char* pspTimeMachineGetPath(){
     return "ms0:/TM/V661TN";
 }
 
+void ClearCaches()
+{
+    sceKernelDcacheWritebackAll();
+    sceKernelIcacheInvalidateAll();
+}
+
 // kermit_peripheral's sub_000007CC clone, called by loadexec + 0x0000299C with a0=8 (was a0=7 for fw <210)
 // Returns 0 on success
 u64 kermit_flash_load(int cmd)
@@ -59,7 +65,7 @@ int flashLoadPatch(int cmd)
             memset((void*)VITA_FLASH_EXTRA, 0, 32);
         }
 
-        sctrlFlushCache();
+        ClearCaches();
     }
     return ret;
 }
@@ -83,9 +89,14 @@ static SceUID sceKernelLoadModulePatched(const char *path, int flags, SceKernelL
 static int OnModuleStart(SceModule *mod)
 {
     if (strcmp(mod->modname, "VshControl") == 0) {
-        int result = sctrlHookImportByNID(mod, "ModuleMgrForKernel", 0x977DE386, sceKernelLoadModulePatched);
-        if (result < 0)
-            printf("TimeMachine_Helper: failed to hook VshControl module loader: 0x%08X\n", result);
+        sctrlHookImportByNID(mod, "ModuleMgrForKernel", 0x977DE386, sceKernelLoadModulePatched);
+    }
+
+    // Patch Kermit Peripheral Module to load flash0
+    if(strcmp(mod->modname, "sceKermitPeripheral_Driver") == 0)
+    {
+        patchKermitPeripheral();
+        ClearCaches();
     }
 
     return previous ? previous(mod) : 0;
