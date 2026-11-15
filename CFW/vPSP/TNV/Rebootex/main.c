@@ -50,7 +50,8 @@ int pspemuLfatOpenTNV2(BootFile* file) {
 				break;
 		}
     }
-
+    
+    // Load all CFW files from FLASH0.TN
     ret = vitaFlashOpenExtra(file, p);
     if (ret == 0){
         relocateFlashFile(file);
@@ -67,7 +68,7 @@ BootLoadExConfig g_bleconf = {
         .redirect_flash = 0,
         .pspemuLfatOpenExtra = &pspemuLfatOpenTNV2
     },
-    .UnpackBootConfig = &UnpackBootConfigTNV2
+    //.UnpackBootConfig = &UnpackBootConfigTNV2
 };
 
 // Entry Point
