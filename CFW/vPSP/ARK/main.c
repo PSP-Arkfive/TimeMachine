@@ -16,7 +16,7 @@
 PSP_MODULE_INFO("Reboot661_VPSP_ARK", PSP_MODULE_KERNEL | PSP_MODULE_SINGLE_START | PSP_MODULE_SINGLE_LOAD, 1, 0);
 
 #define FLASH0_ARK_PATH "ms0:/PSP/SAVEDATA/ARK_01234/FLASH0.ARK"
-#define FLASH0_ARK_ADDR 0x8BA00000
+#define VITA_FLASH_EXTRA 0x8BA00000
 #define FLASH0_ARK_SIZE 0x40000
 
 ARKConfig arkconf = {
@@ -37,7 +37,7 @@ int module_start(SceSize args, void *argp)
     SceUID fd = sceIoOpen(FLASH0_ARK_PATH, PSP_O_RDONLY, 0777);
     if (fd < 0) return fd;
 
-    int read_bytes = sceIoRead(fd, (void*)FLASH0_ARK_ADDR, FLASH0_ARK_SIZE);
+    int read_bytes = sceIoRead(fd, (void*)VITA_FLASH_EXTRA, FLASH0_ARK_SIZE);
     sceIoClose(fd);
     if (read_bytes < 0) return read_bytes;
     if (read_bytes == 0) return -1;

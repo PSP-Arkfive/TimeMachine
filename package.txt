@@ -6,4 +6,6 @@
 /TM/V661ARK/reboot.prx,dist/TM/V661ARK/reboot.prx
 /TM/V661EPI/reboot.prx,dist/TM/V661EPI/reboot.prx
 /TM/661PRO/reboot.prx,dist/TM/661PRO/reboot.prx
+/TM/661PRO/tmhlpr.prx,dist/TM/661PRO/tmhlpr.prx
 /TM/661LME/reboot.prx,dist/TM/661LME/reboot.prx
+/TM/661LME/tmhlpr.prx,dist/TM/661LME/tmhlpr.prx
