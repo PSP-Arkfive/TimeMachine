@@ -26,7 +26,7 @@ PSP_EBOOT_TITLE = TM Installer
 PSP_EBOOT_ICON = ../Resources/TM_ICON.PNG
 #PSP_EBOOT_ICON1 = res/icon1.pmf
 #PSP_EBOOT_SND0 = res/snd0.at3
-PSP_EBOOT_PIC0 = ../Resources/TM_PIC0.PNG
+PSP_EBOOT_PIC1 = ../Resources/TM_PIC1.PNG
 BUILD_PRX = 1
 PSP_EF_AWARE=1
 
