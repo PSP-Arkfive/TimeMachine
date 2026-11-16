@@ -237,13 +237,13 @@ static void ExtractPrxs(int cbFile, SceUID fd)
                                     if (is2g)
                                     {
 										char path[24];
-										snprintf(path,  strlen(TM_PATH[selected_firmware]+12), "%s/ipl_02g.bin", TM_PATH[selected_firmware]);
+										snprintf(path,  sizeof(path), "%s/ipl_02g.bin", TM_PATH[selected_firmware]);
                                         WriteFile(path, g_dataOut2, cbExpanded);
                                     }
                                     else
                                     {
 										char path[24];
-										snprintf(path, strlen(TM_PATH[selected_firmware]+12), "%s/ipl_01g.bin", TM_PATH[selected_firmware]);
+										snprintf(path, sizeof(path), "%s/ipl_01g.bin", TM_PATH[selected_firmware]);
                                         WriteFile(path, g_dataOut2, cbExpanded);
                                     }
 
@@ -254,14 +254,14 @@ static void ExtractPrxs(int cbFile, SceUID fd)
 
                                     if (is2g)
                                     {
-										char path[24];
-										snprintf(path, strlen(TM_PATH[selected_firmware]+16), "%s/nandipl_02g.bin", TM_PATH[selected_firmware]);
+										char path[64];
+										snprintf(path, sizeof(path), "%s/nandipl_02g.bin", TM_PATH[selected_firmware]);
                                         WriteFile(path, g_dataOut2, cb2);
                                     }
                                     else
                                     {
-										char path[24];
-										snprintf(path, strlen(TM_PATH[selected_firmware]+16), "%s/nandipl_01g.bin", TM_PATH[selected_firmware] );
+										char path[64];
+										snprintf(path, sizeof(path), "%s/nandipl_01g.bin", TM_PATH[selected_firmware] );
                                         WriteFile(path, g_dataOut2, cb2);
                                     }
                                 }
