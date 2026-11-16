@@ -32,7 +32,7 @@ jobs:
           PSPDEV: /usr/local/pspdev
           PATH: /usr/local/pspdev/bin:/usr/local/bin:/usr/bin:/bin
 
-      - name: Clone psp-cfw-sdk custom branch
+      - name: Clone psp-cfw-sdk
         run: |
           git clone --depth=1 https://github.com/pspdev/psp-cfw-sdk.git
 
