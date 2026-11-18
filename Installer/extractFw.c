@@ -21,9 +21,12 @@ static const int SMALL_BUFFER_SIZE = 2500000;
 static int et;
 
 
-#define UPDATER_VER_STR "6.61"
-#define UPDATER "661.PBP"
+#define _661_UPDATER_VER_STR "6.61"
+#define _639_UPDATER_VER_STR "6.39"
+#define _661_UPDATER "661.PBP"
+#define _639_UPDATER "639.PBP"
 #define PSAR_SIZE_661    26848656
+#define PSAR_SIZE_639    26096032
 
 int WriteFile(char *file, void *buf, int size);
 
@@ -33,6 +36,7 @@ extern char boot_path[];
 char *TM_PATH[] = {
 	"ms0:/TM/661PRO",
 	"ms0:/TM/661LME",
+	"ms0:/TM/639LME",
 	"ms0:/TM/DCARK",
 	"ms0:/TM/DCARK/150",
 	"ms0:/TM/V661ARK",
@@ -41,7 +45,8 @@ char *TM_PATH[] = {
 
 char *TM_FLASH[] = {
 	"FLASH661.PRO",
-	"FLASH661.LME"
+	"FLASH661.LME",
+	"FLASH639.LME"
 };
 
 
@@ -107,6 +112,7 @@ const char* findPath(const char** paths, int count){
 
 static const char* pbp_paths[] = {
     "ms0:/661.PBP",
+    "ms0:/639.PBP",
 };
 
 void extractArchive(const char* archive, const char* dest_path)
@@ -280,6 +286,57 @@ static void ExtractPrxs(int cbFile, SceUID fd)
                                     WriteFile(iplpath, g_dataOut2, cbExpanded);
                                 }
                             }
+							else if (strstr(name, "loadexec") != NULL)
+							{    
+								
+								cbExpanded = pspDecryptPRX(g_dataOut2, g_dataOut, cbExpanded);
+                                memcpy(g_dataOut2, g_dataOut, cbExpanded);
+
+                                char rebootpath[256];
+                                char* rebootname = strstr(name, "reboot_");
+                                sprintf(rebootpath, "%s/%s", TM_PATH[selected_firmware], rebootname);
+
+                                char* ext = strstr(rebootpath, ".prx");
+                                if (ext) strcpy(ext, ".bin");
+
+								// Now search for the embedded ~PSP (reboot)
+                                u32 *p = (u32 *)g_dataOut2;
+                                //int found = 0;
+                                int i;
+                            
+                                for (i = 0; i < (cbExpanded / 4) - 0x10; i++)
+                                {
+                                    if (p[i] == 0x5053507E)   // "~PSP"
+                                    {
+                                        u32 rebootSize = p[i + 0x2C/4];   // size at +0x2C
+                            
+                                        if (rebootSize > 0x1000 && rebootSize < 0x20000 &&
+                                            (i*4 + rebootSize) <= cbExpanded)
+                                        {
+                                            // Copy the embedded block
+                                            memcpy(g_dataOut, g_dataOut2 + i*4, rebootSize);
+                            
+                                            // Decrypt + decompress the embedded reboot
+                                            int rebootDec = pspDecryptPRX(g_dataOut, g_dataOut2, rebootSize);
+                                            if (rebootDec > 0)
+                                            {
+                                                char outpath[256];
+                                                int is02g = (strstr(name, "02g") != NULL);
+                            
+                                                if (is02g)
+                                                    snprintf(outpath, sizeof(outpath), "%s/reboot_02g.bin", TM_PATH[selected_firmware]);
+                                                else
+                                                    snprintf(outpath, sizeof(outpath), "%s/reboot.bin", TM_PATH[selected_firmware]);
+                            
+                                                WriteFile(outpath, g_dataOut2, rebootDec);
+                                                found = 1;
+                                            }
+                                            break;
+                                        }
+                                    }
+                                }
+                            
+							}
                         } else {
                             continue;
                         }
@@ -338,7 +395,7 @@ void createFolders(char *firmware) {
 }
 
 
-void Extract661PSAR()
+void ExtractPSAR()
 {
 	vlfGuiCancelCentralMenu();
 	vlfGuiCancelPreviousPageControl();
@@ -380,7 +437,10 @@ void Extract661PSAR()
 
     sceKernelDelayThread(10000);
 
-    ExtractPrxs(PSAR_SIZE_661, fd);
+	if(strncmp(TM_PATH[selected_firmware], "6.39", 4) == 0)
+    	ExtractPrxs(PSAR_SIZE_639, fd);
+	else
+    	ExtractPrxs(PSAR_SIZE_661, fd);
     sceIoClose(fd);
 	char extractText[32];
 	snprintf(extractText, sizeof(extractText), "Extracting %s", TM_FLASH[selected_firmware]);

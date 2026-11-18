@@ -3,11 +3,16 @@ PSPDEV = $(shell psp-config --pspdev-path)
 CFWSDK = $(PSPDEV)/share/psp-cfw-sdk
 
 TARGET = tminstaller
+#OBJS = \
+#	crt0.o \
+#	kl4e.o \
+#	rebootXtractor.o \
+#	extractFw.o \
+#	main.o
 OBJS = \
 	crt0.o \
 	extractFw.o \
-	main.o \
-
+	main.o
 
 CFLAGS = -std=c99 -O0 -G0 -g -Wall -fshort-wchar -fno-pic -mno-check-zero-division 
 CXXFLAGS = $(CFLAGS) -fno-exceptions -fno-rtti
@@ -18,7 +23,7 @@ INCDIR = ./
 LIBDIR = /usr/local/pspdev/psp/sdk/lib/
 
 LDFLAGS = -nostartfiles
-LIBS = -lvlfgui -lcolordebugger -lvlfgu -lpspkubridge -lvlflibc -lpspgum -lvlfutils -lpspdecrypt -lpsppsar -lpsppower 
+LIBS = -lvlfgui -lcolordebugger -lvlfgu -lpspkubridge -lvlflibc -lpspgum -lvlfutils -lpspdecrypt -lpsppsar -lpsppower -lintrafont -lz
 PSP_FW_VERSION = 660
 
 EXTRA_TARGETS = EBOOT.PBP

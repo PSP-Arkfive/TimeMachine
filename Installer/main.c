@@ -25,10 +25,10 @@ int OnCancelInstall(int enter) {
 		g_running = 0;
 	return 0;
 }
-extern void Extract661PSAR();
+extern void ExtractPSAR();
 
 int install_thread(SceSize args, void *argp) {
-	Extract661PSAR();
+	ExtractPSAR();
 	g_running = 0;
 	return 0;
 
