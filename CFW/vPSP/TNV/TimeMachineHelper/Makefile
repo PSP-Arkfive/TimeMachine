@@ -9,6 +9,8 @@ OBJS = main.o
 
 all: $(TARGET).prx
 
+main.o: ../flash_loader.h
+
 INCDIR = ../Rebootex
 CFLAGS = -std=c99 -Os -G0 -Wall -fno-pic -fshort-wchar
 

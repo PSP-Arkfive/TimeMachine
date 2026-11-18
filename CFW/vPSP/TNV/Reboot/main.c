@@ -3,6 +3,8 @@
 #include <string.h>
 #include <stdarg.h>
 #include <pspkernel.h>
+#include <pspkermit.h>
+#include <psperror.h>
 #include <psputilsforkernel.h>
 
 #include <cfwmacros.h>
@@ -12,45 +14,35 @@
 #include <bootloadex.h>
 
 #include <rebootex.h>
+#include "../flash_loader.h"
+
 
 PSP_MODULE_INFO("RebootV661TNV2", PSP_MODULE_KERNEL | PSP_MODULE_SINGLE_START | PSP_MODULE_SINGLE_LOAD, 1, 0);
-
-#define FLASH0_TNV_PATH "ms0:/TM/V661TN/FLASH0.TN"
-#define TMHLPR_PATH "ms0:/TM/V661TN/tmhlpr.prx"
 
 RebootexConfigTNCEF conf = {0};
 
 int module_start(SceSize args, void *argp)
 {
-    SceUID fd = sceIoOpen(FLASH0_TNV_PATH, PSP_O_RDONLY, 0777);
-    if (fd < 0) return fd;
+    SceIoStat stat, helper_stat;
+    int res = sceIoGetstat(FLASH0_TNV_PATH, &stat);
+    if (res < 0) return res;
 
-    int read_bytes = sceIoRead(fd, (void*)VITA_FLASH_EXTRA, MAX_FLASH0_SIZE);
-    sceIoClose(fd);
-    if (read_bytes < 0) return read_bytes;
-    if (read_bytes == 0) return -1;
+    res = sceIoGetstat(TMHLPR_PATH, &helper_stat);
+    if (res < 0) return res;
 
-    SceUID tmhlpr_fd = sceIoOpen(TMHLPR_PATH, PSP_O_RDONLY, 0777);
-    if (tmhlpr_fd < 0) return tmhlpr_fd;
+    if (helper_stat.st_size <= 0 || helper_stat.st_size > MAX_FLASH0_SIZE - TMHLPR_ENTRY_OVERHEAD
+        || stat.st_size < 4
+        || stat.st_size > MAX_FLASH0_SIZE - TMHLPR_ENTRY_OVERHEAD - helper_stat.st_size)
+        return SCE_KERR_ILLEGAL_SIZE;
 
-    int tmhlpr_size = sceIoLseek(tmhlpr_fd, 0, PSP_SEEK_END);
-    sceIoLseek(tmhlpr_fd, 0, PSP_SEEK_SET);
-
-    SceUID tmhlpr_memid = sceKernelAllocPartitionMemory(PSP_MEMORY_PARTITION_USER, "tmhlpr", PSP_SMEM_Low, tmhlpr_size, NULL);
-    void *tmhlpr_buf = sceKernelGetBlockHeadAddr(tmhlpr_memid);
-
-    int tmhlpr_read_bytes = sceIoRead(tmhlpr_fd, (void*)tmhlpr_buf, tmhlpr_size);
-    sceIoClose(tmhlpr_fd);
-    if (tmhlpr_read_bytes < 0) return tmhlpr_read_bytes;
-    if (tmhlpr_read_bytes == 0) return -1;
-
-    conf.module_after = "/kd/init.prx";
-    conf.buf = tmhlpr_buf;
-    conf.size = tmhlpr_read_bytes;
-    conf.flags = 0x000000EF;
+    res = patchKermitPeripheral();
+    if (res < 0) return res;
 
     sctrlHENSetRebootexOverride(rebootex, size_rebootex);
     sctrlHENSetRebootexConfigOverride(&conf, sizeof(RebootexConfigTNCEF));
+
+    sceKernelDcacheWritebackAll();
+    sceKernelIcacheInvalidateAll();
 
     return 0;
 }
