@@ -1,4 +1,5 @@
 /TM/tmctrl.prx,dist/TM/tmctrl.prx
+/TM/tmvita.prx,dist/TM/tmvita.prx
 /TM/DCARK/reboot.prx,dist/TM/DCARK/reboot.prx
 /TM/DCARK/tmhlpr.prx,dist/TM/DCARK/tmhlpr.prx
 /TM/DCARK/150/reboot150.prx,dist/TM/DCARK/150/reboot150.prx

@@ -11,7 +11,7 @@ LIBS_URL = https://github.com/pspdev/psp-dynamic-libraries/releases/download/lat
 PRO_TM_URL = https://github.com/psp-arkfive/pro-d/releases/download/latest/pro-d.zip
 LME_TM_URL = https://github.com/psp-arkfive/lme-3/releases/download/latest/lme-3.zip
 
-all: tmctrl cfw-psp cfw-vpsp installer copy-dist
+all: tmctrl tmvita cfw-psp cfw-vpsp installer copy-dist
 
 installer:
 	mkdir $(RESOURCE_DIR) || true
@@ -28,6 +28,9 @@ installer:
 tmctrl:
 
 	$(MAKE) -C TimeMachineControl
+
+tmvita:
+	$(MAKE) -C TimeMachineControlVita
 
 cfw-psp:
 	$(MAKE) -C CFW/PSP/ARK/150/Reboot150
@@ -58,6 +61,7 @@ copy-dist:
 	mkdir -p dist/TM/V661ARK
 	mkdir -p dist/TM/V661TN
 	cp TimeMachineControl/tmctrl.prx dist/TM/
+	cp TimeMachineControlVita/tmvita.prx dist/TM/
 	cp CFW/PSP/ARK/TimeMachineHelper/tmhlpr.prx dist/TM/DCARK/
 	cp CFW/PSP/ARK/RebootDC/reboot.prx dist/TM/DCARK/
 	cp CFW/PSP/ARK/150/Reboot150/reboot150.prx dist/TM/DCARK/150/
@@ -83,6 +87,7 @@ copy-dist:
 clean:
 	$(MAKE) -C Installer clean
 	$(MAKE) -C TimeMachineControl clean
+	$(MAKE) -C TimeMachineControlVita clean
 	$(MAKE) -C CFW/PSP/ARK/150/Reboot150 clean
 	$(MAKE) -C CFW/PSP/ARK/150/TimeMachine150 clean
 	$(MAKE) -C CFW/PSP/ARK/TimeMachineHelper clean

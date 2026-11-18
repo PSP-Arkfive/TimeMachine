@@ -8,7 +8,7 @@ OBJS = \
 	
 all: $(TARGET).prx
 
-main.o: ../flash_loader.h
+main.o: ../Rebootex/rebootex.h ../../../../TimeMachineControlVita/flashloader.h
 
 INCDIR = $(PROCOMMONDIR) ../Rebootex
 CFLAGS = -std=c99 -Os -G0 -Wall -fno-pic -fshort-wchar

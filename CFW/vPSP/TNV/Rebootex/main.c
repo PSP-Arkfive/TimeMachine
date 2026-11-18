@@ -8,19 +8,15 @@
 
 
 #define PATH_TMHLPR FLASH0_PATH "kd/tmhlpr.prx"
+#define PATH_TMVITA FLASH0_PATH "kd/tmvita.prx"
 
 RebootexConfigTNCEF *g_rebootex_config = (RebootexConfigTNCEF *)REBOOTEX_CONFIG;
 
 
 int UnpackBootConfigTNV2(char *buffer, int length)
 {
-    int result = length;
-    int newsize;
-
-    // Insert TimeMachineHelper after systemctrl
-    newsize = AddPRX(buffer, "/kd/init.prx", PATH_TMHLPR+sizeof(FLASH0_PATH)-2, 0x000000EF);
-    if (newsize > 0) result = newsize;
-
+    AddPRX(buffer, "/kd/init.prx", PATH_TMHLPR+sizeof(FLASH0_PATH)-2, 0x000000EF);
+    AddPRX(buffer, "/kd/init.prx", PATH_TMVITA+sizeof(FLASH0_PATH)-2, 0x000000EF);
     return 0;
 }
 

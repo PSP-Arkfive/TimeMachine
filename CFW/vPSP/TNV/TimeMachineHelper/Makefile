@@ -9,7 +9,7 @@ OBJS = main.o
 
 all: $(TARGET).prx
 
-main.o: ../flash_loader.h
+main.o: ../Rebootex/rebootex.h
 
 INCDIR = ../Rebootex
 CFLAGS = -std=c99 -Os -G0 -Wall -fno-pic -fshort-wchar
@@ -25,7 +25,7 @@ USE_KERNEL_LIBS=1
 
 LIBDIR = 
 LDFLAGS = -nostartfiles
-LIBS = -lpspsystemctrl_kernel -lpspkermit_driver
+LIBS = -lpspsystemctrl_kernel
 
 PSP_FW_VERSION = 660
 
