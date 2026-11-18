@@ -65,7 +65,7 @@ int firmware_select(int sel) {
 	vlfGuiCancelNextPageControl();
 	vlfGuiCancelCentralMenu();
 	vlfGuiPreviousPageControl(main_menu);
-	vlfGuiCentralMenu(1, firmware, 0, ExtractFW, 10, 10);
+	vlfGuiCentralMenu(2, firmware, 0, ExtractFW, 10, 10);
 
 	return 0;
 
