@@ -6,6 +6,10 @@ char *cfws[] = {
 	"LME-3"
 };
 
+char *cefs[] = {
+	"Install Time Machine for PS Vita"
+};
+
 char *firmware[] = {
 	"6.61"
 };

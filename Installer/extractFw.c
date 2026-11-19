@@ -37,11 +37,13 @@ char *TM_PATH[] = {
 	"ms0:/TM/DCARK/150",
 	"ms0:/TM/V661ARK",
 	"ms0:/TM/V661EPI",
+	"ms0:/TM/V661TN",
 };
 
 char *TM_FLASH[] = {
 	"FLASH661.PRO",
-	"FLASH661.LME"
+	"FLASH661.LME",
+    "FLASH0.TN",
 };
 
 

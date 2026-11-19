@@ -6,6 +6,7 @@ TARGET = tminstaller
 OBJS = \
 	crt0.o \
 	extractFw.o \
+	installVita.o \
 	main.o \
 
 
@@ -18,15 +19,13 @@ INCDIR = ./
 LIBDIR = /usr/local/pspdev/psp/sdk/lib/
 
 LDFLAGS = -nostartfiles
-LIBS = -lvlfgui -lcolordebugger -lvlfgu -lpspkubridge -lvlflibc -lpspgum -lvlfutils -lpspdecrypt -lpsppsar -lpsppower 
+LIBS = -lvlfgui -lcolordebugger -lvlfgu -lpspkubridge -lpspsystemctrl_user -larkctrl -lvlflibc -lpspgum -lvlfutils -lpspdecrypt -lpsppsar -lpsppower
 PSP_FW_VERSION = 660
 
 EXTRA_TARGETS = EBOOT.PBP
 PSP_EBOOT_TITLE = TM Installer
-PSP_EBOOT_ICON = ../Resources/TM_ICON.PNG
-#PSP_EBOOT_ICON1 = res/icon1.pmf
-#PSP_EBOOT_SND0 = res/snd0.at3
-PSP_EBOOT_PIC1 = ../Resources/TM_PIC1.PNG
+PSP_EBOOT_ICON = ../Resources/ICON0.PNG
+PSP_EBOOT_PIC1 = ../Resources/PIC1.PNG
 BUILD_PRX = 1
 PSP_EF_AWARE=1
 

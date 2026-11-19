@@ -21,8 +21,17 @@ the selected CFW, and the matching Time Machine modules are written to
 The current flash1 registry is copied for the emulated firmware. This installer
 does not install a Memory Stick IPL or configure a boot selector.
 
-## TN-V2 on Vita
+## Vita installer
 
-Place `tmvita.prx` in `ms0:/TM` and the TN-V2 `reboot.prx`, `tmhlpr.prx`,
-and separately built `FLASH0.TN` in `ms0:/TM/V661TN`. Both Time Machine
-modules are added to the flash archive in memory.
+Run the installer under ARK-5 or Epinephrine and select "Install Time Machine
+for PS Vita". No firmware updater is needed. The installer writes
+`tmvita.prx` to `ms0:/TM` and all three `reboot.prx` files to
+`ms0:/TM/V661ARK`, `ms0:/TM/V661EPI`, and `ms0:/TM/V661TN`. Existing files
+are overwritten.
+
+The installation requires `FLASH0.TN` in the installer directory or at
+`ms0:/FLASH0.TN`. The installer copies it and `tmhlpr.prx` to
+`ms0:/TM/V661TN`; the flash archive is not extracted during installation.
+Both Time Machine modules are added to the archive in memory when booting.
+ARK-5 additionally requires its existing
+`ms0:/PSP/SAVEDATA/ARK_01234/FLASH0.ARK` at boot.

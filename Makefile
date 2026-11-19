@@ -10,6 +10,7 @@ LIBS_ARCHIVE = $(RESOURCE_DIR)/LIBS.zip
 LIBS_URL = https://github.com/pspdev/psp-dynamic-libraries/releases/download/latest/LIBS.zip
 PRO_TM_URL = https://github.com/psp-arkfive/pro-d/releases/download/latest/pro-d.zip
 LME_TM_URL = https://github.com/psp-arkfive/lme-3/releases/download/latest/lme-3.zip
+TNV_TM_URL = https://github.com/psp-arkfive/tn-v2/releases/download/latest/tn-v2.zip
 
 all: tmctrl tmvita cfw-psp cfw-vpsp installer copy-dist
 
@@ -19,14 +20,14 @@ installer:
 	curl --fail --location --silent --show-error "$(LIBS_URL)" -o "$(LIBS_ARCHIVE)"
 	curl --fail --location --silent --show-error "$(PRO_TM_URL)" -o "$(TM_FLASH_DIR)/PRO-D.zip"
 	curl --fail --location --silent --show-error "$(LME_TM_URL)" -o "$(TM_FLASH_DIR)/LME-3.zip"
+	curl --fail --location --silent --show-error "$(TNV_TM_URL)" -o "$(TM_FLASH_DIR)/TN-V2.zip"
 	unzip -o "$(LIBS_ARCHIVE)" -d "$(LIBS_DIR)"
 	unzip -o "$(TM_FLASH_DIR)/PRO-D.zip" -d "$(TM_FLASH_DIR)"
 	unzip -o "$(TM_FLASH_DIR)/LME-3.zip" -d "$(TM_FLASH_DIR)"
-
+	unzip -o "$(TM_FLASH_DIR)/TN-V2.zip" -d "$(TM_FLASH_DIR)"
 	$(MAKE) -C Installer
 
 tmctrl:
-
 	$(MAKE) -C TimeMachineControl
 
 tmvita:
@@ -60,6 +61,7 @@ copy-dist:
 	mkdir -p dist/TM/V661EPI
 	mkdir -p dist/TM/V661ARK
 	mkdir -p dist/TM/V661TN
+	mkdir -p dist/PSP/GAME/TimeMachine/
 	cp TimeMachineControl/tmctrl.prx dist/TM/
 	cp TimeMachineControlVita/tmvita.prx dist/TM/
 	cp CFW/PSP/ARK/TimeMachineHelper/tmhlpr.prx dist/TM/DCARK/
@@ -75,14 +77,14 @@ copy-dist:
 	cp CFW/vPSP/TNV/Reboot/reboot.prx dist/TM/V661TN/
 	cp CFW/vPSP/TNV/TimeMachineHelper/tmhlpr.prx dist/TM/V661TN/
 	$(PY) $(BUILDTOOLS)/pack/pack.py -p dist/TM.PKG package.txt -s
-	mkdir -p dist/PSP/GAME/TMINSTALLER
-	cp Installer/EBOOT.PBP dist/TM.PKG dist/PSP/GAME/TMINSTALLER/
-	cp $(LIBS_DIR)/pspdecrypt.prx dist/PSP/GAME/TMINSTALLER/
-	cp $(LIBS_DIR)/vlf.prx dist/PSP/GAME/TMINSTALLER/
-	cp $(LIBS_DIR)/intraFont-vlf.prx dist/PSP/GAME/TMINSTALLER/
-	cp $(LIBS_DIR)/libpsardumper.prx dist/PSP/GAME/TMINSTALLER/
-	cp $(TM_FLASH_DIR)/FLASH661.PRO dist/PSP/GAME/TMINSTALLER/
-	cp $(TM_FLASH_DIR)/FLASH661.LME dist/PSP/GAME/TMINSTALLER/
+	cp Installer/EBOOT.PBP dist/TM.PKG dist/PSP/GAME/TimeMachine/
+	cp $(LIBS_DIR)/pspdecrypt.prx dist/PSP/GAME/TimeMachine/
+	cp $(LIBS_DIR)/vlf.prx dist/PSP/GAME/TimeMachine/
+	cp $(LIBS_DIR)/intraFont-vlf.prx dist/PSP/GAME/TimeMachine/
+	cp $(LIBS_DIR)/libpsardumper.prx dist/PSP/GAME/TimeMachine/
+	cp $(TM_FLASH_DIR)/FLASH661.PRO dist/PSP/GAME/TimeMachine/
+	cp $(TM_FLASH_DIR)/FLASH661.LME dist/PSP/GAME/TimeMachine/
+	cp $(TM_FLASH_DIR)/FLASH0.TN dist/PSP/GAME/TimeMachine/
 
 clean:
 	$(MAKE) -C Installer clean

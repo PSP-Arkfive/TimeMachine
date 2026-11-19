@@ -6,6 +6,8 @@
 /TM/DCARK/150/tmctrl150.prx,dist/TM/DCARK/150/tmctrl150.prx
 /TM/V661ARK/reboot.prx,dist/TM/V661ARK/reboot.prx
 /TM/V661EPI/reboot.prx,dist/TM/V661EPI/reboot.prx
+/TM/V661TN/reboot.prx,dist/TM/V661TN/reboot.prx
+/TM/V661TN/tmhlpr.prx,dist/TM/V661TN/tmhlpr.prx
 /TM/661PRO/reboot.prx,dist/TM/661PRO/reboot.prx
 /TM/661PRO/tmhlpr.prx,dist/TM/661PRO/tmhlpr.prx
 /TM/661PRO/tmctrl.prx,dist/TM/tmctrl.prx
