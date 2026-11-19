@@ -7,8 +7,8 @@
 #define FLASH_ENTRY_HEADER_SIZE 5
 #define FLASH_ENTRY_OVERHEAD(path) (FLASH_ENTRY_HEADER_SIZE + sizeof(path) - 1)
 
-static const char *flash_package_path;
-static const char *helper_path;
+static const char *flash_tm_path;
+static const char *flash_package_name;
 
 static int readFlashFile(const char *path, void *buffer, u32 size)
 {
@@ -34,10 +34,18 @@ static int readFlashEntry(u8 *entry, const char *name, const char *path, u32 siz
 static int loadFlashWithHelper(void)
 {
     u8 *flash = (u8 *)VITA_FLASH_EXTRA;
-    SceIoStat archive_stat, helper_stat, control_stat;
     *(u32 *)flash = 0;
+    size_t tm_len = strlen(flash_tm_path);
+    size_t package_len = tm_len + strlen(flash_package_name) + 2;
+    size_t helper_len = tm_len + sizeof("/tmhlpr.prx");
+    if (package_len > 256 || helper_len > 256) return SCE_ENAMETOOLONG;
+    char package_path[package_len], helper_path[helper_len];
+    snprintf(package_path, sizeof(package_path), "%s/%s", flash_tm_path, flash_package_name);
+    snprintf(helper_path, sizeof(helper_path), "%s/tmhlpr.prx", flash_tm_path);
 
-    int result = sceIoGetstat(flash_package_path, &archive_stat);
+    SceIoStat archive_stat, helper_stat, control_stat;
+
+    int result = sceIoGetstat(package_path, &archive_stat);
     if (result < 0) return result;
     result = sceIoGetstat(helper_path, &helper_stat);
     if (result < 0) return result;
@@ -59,7 +67,7 @@ static int loadFlashWithHelper(void)
     u32 control_entry_size = FLASH_ENTRY_OVERHEAD(TMVITA_FLASH_PATH) + control_size;
     u8 *archive = flash + helper_entry_size + control_entry_size;
 
-    result = readFlashFile(flash_package_path, archive, archive_size);
+    result = readFlashFile(package_path, archive, archive_size);
     if (result < 0) return result;
 
     u32 nfiles;
@@ -113,14 +121,14 @@ static int flashLoadPatch(int cmd)
     return ret;
 }
 
-static int patchKermitPeripheral(const char *package, const char *helper)
+static int patchKermitPeripheral(const char *tm_path, const char *package_name)
 {
     u32 function = sctrlHENFindFunction("sceKermitPeripheral_Driver", "sceKermitPeripheral_driver", 0x0648E1A3);
     if (!function) return SCE_EINVAL;
     u32 swaddress = findJAL(function);
     if (!swaddress) return SCE_EINVAL;
-    flash_package_path = package;
-    helper_path = helper;
+    flash_tm_path = tm_path;
+    flash_package_name = package_name;
     REDIRECT_FUNCTION(swaddress, flashLoadPatch);
     return 0;
 }

@@ -17,8 +17,8 @@
 #include <rebootex.h>
 #include "../../../../TimeMachineControlVita/flashloader.h"
 
-#define FLASH0_TNV_PATH "ms0:/TM/V661TN/FLASH0.TN"
-#define TMHLPR_PATH "ms0:/TM/V661TN/tmhlpr.prx"
+#define TM_PATH "ms0:/TM/V661TN"
+#define FLASH0_TNV_NAME "FLASH0.TN"
 
 PSP_MODULE_INFO("RebootV661TNV2", PSP_MODULE_KERNEL | PSP_MODULE_SINGLE_START | PSP_MODULE_SINGLE_LOAD, 1, 0);
 
@@ -26,7 +26,7 @@ RebootexConfigTNCEF conf = {0};
 
 int module_start(SceSize args, void *argp)
 {
-    int res = patchKermitPeripheral(FLASH0_TNV_PATH, TMHLPR_PATH);
+    int res = patchKermitPeripheral(TM_PATH, FLASH0_TNV_NAME);
     if (res < 0) return res;
 
     sctrlHENSetRebootexOverride(rebootex, size_rebootex);
