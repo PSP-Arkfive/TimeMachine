@@ -1,37 +1,15 @@
 # TimeMachine
 Tool for installing and loading entire PSP firmware and CFW on Memory Stick.
 
-## PSP installer
+- You need the latest ARK-5 installed.
+- To reboot into the installed Custom Firmware you can find a new entry for Time Machine in the Extras (or Games) section of the XMB.
 
-Build with the PSP toolchain and psp-cfw-sdk installed: `make`. Copy
-`dist/PSP/GAME/TMINSTALLER` to the Memory Stick. Put the matching
-`FLASH661.PRO` or `FLASH661.LME` package in that directory or on the root
-of `ms0:` or `ef0:`. Obtain the official `661.PBP` (or `661GO.PBP` for PSP
-Go) separately and put it in one of the same locations. `TM.PKG` is supplied
-with the installer.
+## PSP
 
-The installer also requires `intraFont-vlf.prx`, `vlf.prx`,
-`libpsardumper.prx`, and `pspdecrypt.prx` in the installer directory or
-`ms0:/PSP/LIBS` or `ef0:/PSP/LIBS`. These are available from the PSP dynamic
-libraries distribution.
+- Supports `6.61` only (for now). Download the 6.61 updater and name it 661.PBP (or 661GO.PBP) to Memory Stick.
+- You can choose to install `6.61 PRO-D` and/or `6.61 LME-3`.
 
-Select PRO-D or LME-3, advance to 6.61, and confirm installation. Firmware,
-the selected CFW, and the matching Time Machine modules are written to
-`ms0:/TM/661PRO` or `ms0:/TM/661LME`; existing files there are overwritten.
-The current flash1 registry is copied for the emulated firmware. This installer
-does not install a Memory Stick IPL or configure a boot selector.
+## Vita
 
-## Vita installer
-
-Run the installer under ARK-5 or Epinephrine and select "Install Time Machine
-for PS Vita". No firmware updater is needed. The installer writes
-`tmvita.prx` to `ms0:/TM` and all three `reboot.prx` files to
-`ms0:/TM/V661ARK`, `ms0:/TM/V661EPI`, and `ms0:/TM/V661TN`. Existing files
-are overwritten.
-
-The installation requires `FLASH0.TN` in the installer directory or at
-`ms0:/FLASH0.TN`. The installer copies it and `tmhlpr.prx` to
-`ms0:/TM/V661TN`; the flash archive is not extracted during installation.
-Both Time Machine modules are added to the archive in memory when booting.
-ARK-5 additionally requires its existing
-`ms0:/PSP/SAVEDATA/ARK_01234/FLASH0.ARK` at boot.
+- Supports `Adrenaline` only. Latest version is needed for Time Machine support in Epinephrine.
+- It installs files needed to boot into ARK-5, Epinephrine or the older TN-V2 CEF from either ARK-5 or Epinephrine.
