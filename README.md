@@ -24,5 +24,5 @@ does not install a Memory Stick IPL or configure a boot selector.
 ## TN-V2 on Vita
 
 Place `tmvita.prx` in `ms0:/TM` and the TN-V2 `reboot.prx`, `tmhlpr.prx`,
-`satelite.prx`, and separately built `FLASH0.TN` in `ms0:/TM/V661TN`.
-Both Time Machine modules are added to the flash archive in memory.
+and separately built `FLASH0.TN` in `ms0:/TM/V661TN`. Both Time Machine
+modules are added to the flash archive in memory.
