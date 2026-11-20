@@ -43,7 +43,7 @@ int LoadReboot(void * arg1, unsigned int arg2, void * arg3, unsigned int arg4)
     memcpy((void*)REBOOTEX_TEXT, rebootex150, size_rebootex150);
 
     // Restore Reboot Buffer Configuration
-    memcpy((void *)REBOOTEX_CONFIG, &rebootex_config, sizeof(RebootexConfigARK));
+    memcpy((void *)REBOOTEX_CONFIG, rebootex_config, sizeof(RebootexConfigARK));
 
     // Restore ARK Configuration
     memcpy((void*)ARK_CONFIG, ark_config, sizeof(ARKConfig));

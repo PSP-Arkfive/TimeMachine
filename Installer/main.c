@@ -1,5 +1,6 @@
 #include <stddef.h>
 #include <stdio.h>
+#include <string.h>
 #include <pspsdk.h>
 #include <pspkernel.h>
 #include <psptypes.h>
@@ -7,6 +8,7 @@
 
 #include <vlf.h>
 #include <kubridge.h>
+#include <systemctrl.h>
 #include <systemctrl_se.h>
 #include <systemctrl_ark.h>
 
@@ -18,10 +20,16 @@ PSP_MAIN_THREAD_ATTR(0);
 
 char boot_path[256];
 
-static int g_running = 1;
+static volatile int g_running = 1;
 
 int selected_firmware = 0;
 int is_psvita = 0;
+static int psp_model;
+static char *cfw_names[FIRMWARE_OPTION_COUNT];
+static const FirmwareOption *available_firmwares[FIRMWARE_OPTION_COUNT];
+static char *firmware_names[FIRMWARE_OPTION_COUNT];
+static int cfw_count;
+static int firmware_count;
 
 int OnCancelInstall(int enter) {
 
@@ -29,16 +37,62 @@ int OnCancelInstall(int enter) {
 		g_running = 0;
 	return 0;
 }
-extern void Extract661PSAR();
+extern int Extract661PSAR(void);
+extern void FreeFirmwareBuffers(void);
+extern void RemoveInstallProgress(void);
 extern void InstallVita();
+int main_menu(void);
+
+static int OnPreviousPage(int page) {
+	/* VLF's page-control cancellation must only run once per control. */
+	vlfGuiCancelPreviousPageControl();
+	return main_menu();
+}
+
+static int finish_text;
+static char *finish_options[] = { "Back to main menu", "Exit" };
+
+static int OnReturnToMainMenu(void *param) {
+	vlfGuiBottomDialog(VLF_DI_CANCEL, -1, 1, 0, VLF_DEFAULT, OnCancelInstall);
+	main_menu();
+	return VLF_EV_RET_REMOVE_HANDLERS;
+}
+
+static int OnInstallChoice(int sel) {
+	if (sel == 0) {
+		if (vlfGuiAddEventHandler(0, -1, OnReturnToMainMenu, NULL) < 0) {
+			vlfGuiMessageDialog("Failed to return to the main menu.", 1);
+			return VLF_EV_RET_NOTHING;
+		}
+	} else {
+		g_running = 0;
+	}
+	vlfGuiRemoveText(finish_text);
+	return VLF_EV_RET_REMOVE_OBJECTS | VLF_EV_RET_REMOVE_HANDLERS;
+}
+
+static int OnInstallFinish(void *param) {
+	int result = *(int *)param;
+	RemoveInstallProgress();
+	finish_text = vlfGuiAddText(20, 50, result == 0 ?
+		"Installation complete." : "Installation failed.");
+	vlfGuiCentralMenu(2, finish_options, 0, OnInstallChoice, 10, 10);
+	return VLF_EV_RET_REMOVE_HANDLERS;
+}
 
 int install_thread(SceSize args, void *argp) {
-	if (is_psvita)
+	if (is_psvita) {
 		InstallVita();
-	else
-		Extract661PSAR();
-	g_running = 0;
-	return 0;
+		g_running = 0;
+	} else {
+		static int result;
+		result = Extract661PSAR();
+		FreeFirmwareBuffers();
+		if (result == 0)
+			sceKernelDelayThread(500000);
+		vlfGuiAddEventHandler(0, -1, OnInstallFinish, &result);
+	}
+	return sceKernelExitDeleteThread(0);
 
 }
 
@@ -56,9 +110,6 @@ int ExtractFW(int sel) {
 
     return VLF_EV_RET_REMOVE_HANDLERS;
 }
-int main_menu();
-
-
 int LoadStartModule(char *module, int partition)
 {
     SceUID mod = kuKernelLoadModule(module, 0, NULL);
@@ -70,13 +121,24 @@ int LoadStartModule(char *module, int partition)
 }
 
 
-int firmware_select(int sel) {
+int start_firmware_install(int sel) {
+	selected_firmware = available_firmwares[sel]->target;
+	return ExtractFW(sel);
+}
 
-	selected_firmware = sel;
+int firmware_select(int sel) {
+	firmware_count = 0;
+	for (unsigned int i = 0; i < FIRMWARE_OPTION_COUNT; i++) {
+		if (psp_model <= firmware_options[i].max_model &&
+		    strcmp(cfw_names[sel], firmware_options[i].cfw) == 0) {
+			available_firmwares[firmware_count] = &firmware_options[i];
+			firmware_names[firmware_count++] = firmware_options[i].name;
+		}
+	}
 	vlfGuiCancelNextPageControl();
 	vlfGuiCancelCentralMenu();
-	vlfGuiPreviousPageControl(main_menu);
-	vlfGuiCentralMenu(1, firmware, 0, ExtractFW, 10, 10);
+	vlfGuiPreviousPageControl(OnPreviousPage);
+	vlfGuiCentralMenu(firmware_count, firmware_names, 0, start_firmware_install, 10, 10);
 
 	return 0;
 
@@ -84,8 +146,27 @@ int firmware_select(int sel) {
 
 int main_menu() {
 	vlfGuiCancelCentralMenu();
-	vlfGuiCancelPreviousPageControl();
-	vlfGuiCentralMenu(is_psvita ? 1 : 2, (is_psvita ? cefs : cfws), 0, (is_psvita ? ExtractFW : firmware_select), 10, 10);
+	if (is_psvita) {
+		vlfGuiCentralMenu(1, cefs, 0, ExtractFW, 10, 10);
+	} else {
+		cfw_count = 0;
+		for (unsigned int i = 0; i < FIRMWARE_OPTION_COUNT; i++) {
+			if (psp_model > firmware_options[i].max_model)
+				continue;
+			int j;
+			for (j = 0; j < cfw_count; j++)
+				if (strcmp(cfw_names[j], firmware_options[i].cfw) == 0)
+					break;
+			if (j == cfw_count)
+				cfw_names[cfw_count++] = firmware_options[i].cfw;
+		}
+		if (!cfw_count) {
+			vlfGuiMessageDialog("No firmware supports this PSP model.", 1);
+			g_running = 0;
+			return 0;
+		}
+		vlfGuiCentralMenu(cfw_count, cfw_names, 0, firmware_select, 10, 10);
+	}
 	return 0;
 }
 
@@ -127,6 +208,12 @@ int app_main(int args, char *argv[]) {
 	setup_ui();
 
 	if (!is_psvita) {
+		psp_model = kuKernelGetModel();
+		if (psp_model < 0) {
+			vlfGuiMessageDialog("Failed to determine PSP model.", 1);
+			sceKernelExitGame();
+			return 0;
+		}
 		int mod = LoadStartModule("libpsardumper.prx", PSP_MEMORY_PARTITION_KERNEL);
 		if(mod<0)
 			vlfGuiMessageDialog("libpspsardumper.prx failed to load", 0);

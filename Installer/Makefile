@@ -6,6 +6,7 @@ TARGET = tminstaller
 OBJS = \
 	crt0.o \
 	extractFw.o \
+	install150.o \
 	installVita.o \
 	main.o \
 
@@ -23,7 +24,7 @@ LIBS = -lvlfgui -lcolordebugger -lvlfgu -lpspkubridge -lpspsystemctrl_user -lark
 PSP_FW_VERSION = 660
 
 EXTRA_TARGETS = EBOOT.PBP
-PSP_EBOOT_TITLE = TM Installer
+PSP_EBOOT_TITLE = Time Machine
 PSP_EBOOT_ICON = ../Resources/ICON0.PNG
 PSP_EBOOT_PIC1 = ../Resources/PIC1.PNG
 BUILD_PRX = 1

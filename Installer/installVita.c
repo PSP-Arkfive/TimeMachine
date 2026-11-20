@@ -6,6 +6,8 @@
 #include <vlf.h>
 
 extern char boot_path[];
+int StartInstallProgress(char *status);
+void SetInstallProgress(int value);
 
 static const char *vita_dirs[] = {
     "V661ARK", "V661EPI", "V661TN"
@@ -27,7 +29,7 @@ static int ensureDirectory(const char *path)
     return sceIoMkdir(path, 0777);
 }
 
-static int copyBytes(SceUID input, const char *path, int size)
+static int copyBytes(SceUID input, const char *path, int size, int progress_start, int progress_end)
 {
     char buffer[16384];
     SceUID output = sceIoOpen(path, PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
@@ -35,6 +37,7 @@ static int copyBytes(SceUID input, const char *path, int size)
         return output;
 
     int result = 0;
+    int total = size;
     while (size > 0) {
         int amount = size < (int)sizeof(buffer) ? size : (int)sizeof(buffer);
         int read = sceIoRead(input, buffer, amount);
@@ -48,6 +51,8 @@ static int copyBytes(SceUID input, const char *path, int size)
             break;
         }
         size -= read;
+        if (progress_end > progress_start)
+            SetInstallProgress(progress_start + (int)((long long)(progress_end - progress_start) * (total - size) / total));
         scePowerTick(0);
     }
     int close_result = sceIoClose(output);
@@ -66,7 +71,7 @@ static int installModules(void)
     if (input < 0)
         return input;
 
-    unsigned int found = 0;
+    unsigned int found = 0, completed = 0;
     int count;
     int result = -1;
     SceOff package_size = sceIoLseek(input, 0, PSP_SEEK_END);
@@ -103,10 +108,14 @@ static int installModules(void)
             }
             char destination[260];
             snprintf(destination, sizeof(destination), "ms0:%s", name);
-            result = copyBytes(input, destination, size);
+            result = copyBytes(input, destination, size, 0, 0);
             if (result < 0)
                 goto done;
-            found |= flag;
+            if (!(found & flag)) {
+                found |= flag;
+                SetInstallProgress(85 + 14 * ++completed /
+                    (sizeof(vita_modules) / sizeof(vita_modules[0])));
+            }
         } else if (sceIoLseek(input, size, PSP_SEEK_CUR) < 0) {
             result = -1;
             goto done;
@@ -138,7 +147,7 @@ static int copyTNPackage(const char *destination)
         if (strcmp(source, destination) == 0)
             result = 0;
         else if (sceIoLseek(input, 0, PSP_SEEK_SET) == 0)
-            result = copyBytes(input, destination, (int)size);
+            result = copyBytes(input, destination, (int)size, 5, 85);
     }
     sceIoClose(input);
     return result;
@@ -146,10 +155,7 @@ static int copyTNPackage(const char *destination)
 
 void InstallVita(void)
 {
-    vlfGuiCancelCentralMenu();
-    vlfGuiCancelPreviousPageControl();
-    vlfGuiCancelBottomDialog();
-    int text = vlfGuiAddText(20, 50, "Installing Time Machine, please wait...");
+    int text = StartInstallProgress("Installing Time Machine, please wait...");
     char path[128];
     const char *step = "creating the destination";
     int result = -1;
@@ -161,9 +167,11 @@ void InstallVita(void)
         if ((result = ensureDirectory(path)) < 0)
             goto done;
     }
+    SetInstallProgress(5);
     step = "copying FLASH0.TN";
     if ((result = copyTNPackage("ms0:/TM/V661TN/FLASH0.TN")) < 0)
         goto done;
+    SetInstallProgress(85);
     step = "installing modules from TM.PKG";
     result = installModules();
 
@@ -173,6 +181,7 @@ done:
         snprintf(message, sizeof(message), "Failed %s (0x%08X).", step, (unsigned int)result);
         vlfGuiMessageDialog(message, 1);
     } else {
+        SetInstallProgress(100);
         vlfGuiSetText(text, "Installation complete.");
         sceKernelDelayThread(2000000);
     }

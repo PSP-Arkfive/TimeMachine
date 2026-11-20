@@ -11,6 +11,9 @@ LIBS_URL = https://github.com/pspdev/psp-dynamic-libraries/releases/download/lat
 PRO_TM_URL = https://github.com/psp-arkfive/pro-d/releases/download/latest/pro-d.zip
 LME_TM_URL = https://github.com/psp-arkfive/lme-3/releases/download/latest/lme-3.zip
 TNV_TM_URL = https://github.com/psp-arkfive/tn-v2/releases/download/latest/tn-v2.zip
+ARK150_DIR = $(RESOURCE_DIR)/ARK150
+ARK150_ARCHIVE = $(RESOURCE_DIR)/ARK-150.zip
+ARK150_URL = https://github.com/psp-arkfive/ark-150/releases/download/latest/ARK-150.zip
 
 all: tmctrl tmvita cfw-psp cfw-vpsp installer copy-dist
 
@@ -21,10 +24,12 @@ installer:
 	curl --fail --location --silent --show-error "$(PRO_TM_URL)" -o "$(TM_FLASH_DIR)/PRO-D.zip"
 	curl --fail --location --silent --show-error "$(LME_TM_URL)" -o "$(TM_FLASH_DIR)/LME-3.zip"
 	curl --fail --location --silent --show-error "$(TNV_TM_URL)" -o "$(TM_FLASH_DIR)/TN-V2.zip"
+	curl --fail --location --silent --show-error "$(ARK150_URL)" -o "$(ARK150_ARCHIVE)"
 	unzip -o "$(LIBS_ARCHIVE)" -d "$(LIBS_DIR)"
 	unzip -o "$(TM_FLASH_DIR)/PRO-D.zip" -d "$(TM_FLASH_DIR)"
 	unzip -o "$(TM_FLASH_DIR)/LME-3.zip" -d "$(TM_FLASH_DIR)"
 	unzip -o "$(TM_FLASH_DIR)/TN-V2.zip" -d "$(TM_FLASH_DIR)"
+	unzip -o "$(ARK150_ARCHIVE)" FLASH150.ARK LANG150.ARK -d "$(ARK150_DIR)"
 	$(MAKE) -C Installer
 
 tmctrl:
@@ -85,6 +90,7 @@ copy-dist:
 	cp $(TM_FLASH_DIR)/FLASH661.PRO dist/PSP/GAME/TimeMachine/
 	cp $(TM_FLASH_DIR)/FLASH661.LME dist/PSP/GAME/TimeMachine/
 	cp $(TM_FLASH_DIR)/FLASH0.TN dist/PSP/GAME/TimeMachine/
+	cp $(ARK150_DIR)/FLASH150.ARK $(ARK150_DIR)/LANG150.ARK dist/PSP/GAME/TimeMachine/
 
 clean:
 	$(MAKE) -C Installer clean
