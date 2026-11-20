@@ -52,7 +52,9 @@ cfw-psp:
 	$(MAKE) -C CFW/PSP/LME/661/TimeMachineHelper
 
 cfw-vpsp:
+	$(MAKE) -C CFW/vPSP/ARK/rebootex
 	$(MAKE) -C CFW/vPSP/ARK
+	$(MAKE) -C CFW/vPSP/EPI/rebootex
 	$(MAKE) -C CFW/vPSP/EPI
 	$(MAKE) -C CFW/vPSP/TNV/Rebootex
 	$(MAKE) -C CFW/vPSP/TNV/Reboot
@@ -108,7 +110,9 @@ clean:
 	$(MAKE) -C CFW/PSP/LME/661/Reboot clean
 	$(MAKE) -C CFW/PSP/LME/661/TimeMachineHelper clean
 	$(MAKE) -C CFW/vPSP/ARK clean
+	$(MAKE) -C CFW/vPSP/ARK/rebootex clean
 	$(MAKE) -C CFW/vPSP/EPI clean
+	$(MAKE) -C CFW/vPSP/EPI/rebootex clean
 	$(MAKE) -C CFW/vPSP/TNV/Rebootex clean
 	$(MAKE) -C CFW/vPSP/TNV/Reboot clean
 	$(MAKE) -C CFW/vPSP/TNV/TimeMachineHelper clean
