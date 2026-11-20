@@ -89,6 +89,7 @@ int Check150Files(u8 *scratch, int scratch_size);
 int WriteFile(char *file, void *buf, int size);
 
 extern int selected_firmware;
+extern const char *selected_usbdevice_path;
 extern char boot_path[];
 
 char *TM_PATH[] = {
@@ -317,6 +318,43 @@ static int extractArchive(const char *archive, const char *dest_path,
         result = 0;
 done:
     sceIoClose(fdr);
+    return result;
+}
+
+static int InstallUsbDevice(void)
+{
+    char source[320], destination[320];
+    if (snprintf(source, sizeof(source), "%s/usbdevice.prx", boot_path) >= (int)sizeof(source) ||
+        snprintf(destination, sizeof(destination), "%s%s", TM_PATH[selected_firmware],
+                 selected_usbdevice_path) >= (int)sizeof(destination))
+        return -1;
+    SceUID input = sceIoOpen(source, PSP_O_RDONLY, 0);
+    if (input < 0)
+        return -1;
+    SceUID output = sceIoOpen(destination, PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+    if (output < 0) {
+        sceIoClose(input);
+        return -1;
+    }
+
+    int result = -1;
+    int copied = 0;
+    int read;
+    while ((read = sceIoRead(input, g_dataOut, 16 * 1024)) > 0) {
+        if (sceIoWrite(output, g_dataOut, read) != read)
+            goto done;
+        copied = 1;
+        scePowerTick(0);
+    }
+    if (read == 0 && copied)
+        result = 0;
+done:
+    if (sceIoClose(output) < 0)
+        result = -1;
+    if (sceIoClose(input) < 0)
+        result = -1;
+    if (result < 0)
+        sceIoRemove(destination);
     return result;
 }
 
@@ -630,6 +668,10 @@ int Extract661PSAR(void)
     vlfGuiSetText(et, "Installing Time Machine modules...");
     if (extractArchive("TM.PKG", "ms0:", 1, 93, 99) < 0) {
         vlfGuiMessageDialog("TM.PKG is missing required modules or could not be extracted.", 1);
+        return -1;
+    }
+    if (selected_usbdevice_path && InstallUsbDevice() < 0) {
+        vlfGuiMessageDialog("Failed to install usbdevice.prx.", 1);
         return -1;
     }
     SetInstallProgress(100);

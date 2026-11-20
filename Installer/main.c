@@ -23,6 +23,7 @@ char boot_path[256];
 static volatile int g_running = 1;
 
 int selected_firmware = 0;
+const char *selected_usbdevice_path;
 int is_psvita = 0;
 static int psp_model;
 static char *cfw_names[FIRMWARE_OPTION_COUNT];
@@ -123,6 +124,7 @@ int LoadStartModule(char *module, int partition)
 
 int start_firmware_install(int sel) {
 	selected_firmware = available_firmwares[sel]->target;
+	selected_usbdevice_path = available_firmwares[sel]->usbdevice_path;
 	return ExtractFW(sel);
 }
 

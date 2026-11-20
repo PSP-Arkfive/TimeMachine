@@ -89,6 +89,7 @@ copy-dist:
 	cp $(LIBS_DIR)/vlf.prx dist/PSP/GAME/TimeMachine/
 	cp $(LIBS_DIR)/intraFont-vlf.prx dist/PSP/GAME/TimeMachine/
 	cp $(LIBS_DIR)/libpsardumper.prx dist/PSP/GAME/TimeMachine/
+	cp $(LIBS_DIR)/usbdevice.prx dist/PSP/GAME/TimeMachine/
 	cp $(TM_FLASH_DIR)/FLASH661.PRO dist/PSP/GAME/TimeMachine/
 	cp $(TM_FLASH_DIR)/FLASH661.LME dist/PSP/GAME/TimeMachine/
 	cp $(TM_FLASH_DIR)/FLASH0.TN dist/PSP/GAME/TimeMachine/

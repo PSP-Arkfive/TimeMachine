@@ -9,6 +9,9 @@ Tool for installing and loading entire PSP firmware and CFW on Memory Stick.
 - You can install `6.61 PRO-D`, `6.61 LME-3`, and/or `1.50 ARK`.
 - For 6.61, download the updater and name it `661.PBP` (or `661GO.PBP`) on
   the Memory Stick, or `150.PBP` for `1.50 ARK`.
+- The installer includes `usbdevice.prx` and installs it for PRO-D and LME-3.
+  Each firmware's destination is configured in `Installer/menu_items.h`, relative
+  to its Time Machine firmware directory; use `NULL` when it is not needed.
 
 ## Vita
 

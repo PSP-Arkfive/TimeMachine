@@ -6,12 +6,13 @@ typedef struct {
 	char *name;
 	int target;
 	int max_model;
+	const char *usbdevice_path;
 } FirmwareOption;
 
 static const FirmwareOption firmware_options[] = {
-	{ "PRO-D", "6.61", 0, PSP_STREET },
-	{ "LME-3", "6.61", 1, PSP_STREET },
-	{ "ARK-5", "1.50", 3, PSP_1000 }
+	{ "PRO-D", "6.61", 0, PSP_STREET, "/kd/_usbdevice.prx" },
+	{ "LME-3", "6.61", 1, PSP_STREET, "/kd/usbdev.prx" },
+	{ "ARK-5", "1.50", 3, PSP_1000, NULL }
 };
 
 #define FIRMWARE_OPTION_COUNT (sizeof(firmware_options) / sizeof(firmware_options[0]))
