@@ -439,9 +439,24 @@ static int ExtractPrxs(int cbFile, SceUID fd)
 
                         if (found) {
                             if (strncmp(name, "flash0", 6) == 0) {
-                                snprintf(szDataPath, sizeof(szDataPath), "%s/%s", TM_PATH[selected_firmware], name + 8);
+								snprintf(szDataPath, sizeof(szDataPath), "%s/%s", TM_PATH[selected_firmware], name + 8);
 
                                 res = WriteFile(szDataPath, g_dataOut2, cbExpanded);
+								char *filename = strrchr(name, '/');
+								if(filename) {
+									filename++;
+								    if(strncmp(filename, "loadexec_", 9) == 0 && strstr(filename, ".prx") != NULL ) {
+                                        int decrypted_size = pspDecryptPRX(g_dataOut2, g_dataOut, cbExpanded);
+										if (decrypted_size > 0) {
+                                           char rebootpath[256];
+                                           snprintf(rebootpath,sizeof(rebootpath),"%s/reboot_%s.bin",TM_PATH[selected_firmware],filename + 9);
+                                           char *ext = strstr(rebootpath, ".prx");
+                                           if (ext)
+                                               strcpy(ext, ".bin");
+                                           res = WriteFile(rebootpath, g_dataOut, decrypted_size);
+                                       }
+                                   }
+								}
                             }
                             else if (strstr(name, "ipl") == name)
                             {
@@ -459,13 +474,13 @@ static int ExtractPrxs(int cbFile, SceUID fd)
 
                                     if (is2g)
                                     {
-										char path[24];
+										char path[256];
 										snprintf(path,  sizeof(path), "%s/ipl_02g.bin", TM_PATH[selected_firmware]);
                                         WriteFile(path, g_dataOut2, cbExpanded);
                                     }
                                     else
                                     {
-										char path[24];
+										char path[256];
 										snprintf(path, sizeof(path), "%s/ipl_01g.bin", TM_PATH[selected_firmware]);
                                         WriteFile(path, g_dataOut2, cbExpanded);
                                     }
@@ -477,13 +492,13 @@ static int ExtractPrxs(int cbFile, SceUID fd)
 
                                     if (is2g)
                                     {
-										char path[64];
+										char path[256];
 										snprintf(path, sizeof(path), "%s/nandipl_02g.bin", TM_PATH[selected_firmware]);
                                         WriteFile(path, g_dataOut2, cb2);
                                     }
                                     else
                                     {
-										char path[64];
+										char path[256];
 										snprintf(path, sizeof(path), "%s/nandipl_01g.bin", TM_PATH[selected_firmware] );
                                         WriteFile(path, g_dataOut2, cb2);
                                     }
@@ -503,7 +518,7 @@ static int ExtractPrxs(int cbFile, SceUID fd)
                                     WriteFile(iplpath, g_dataOut2, cbExpanded);
                                 }
                             }
-                        } else {
+						} else {
                             continue;
                         }
                     } else {
