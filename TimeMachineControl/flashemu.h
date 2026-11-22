@@ -2,6 +2,7 @@
 #define __FLASHEMU_H__
 
 #include <pspiofilemgr_kernel.h>
+#include <pspkernel.h>
 
 /** Structure passed to the file functions of the io driver system */
 typedef struct FakeIob
@@ -22,5 +23,6 @@ extern char *tm_path;
 int InstallFlashEmu();
 int UninstallFlashEmu();
 void PrepareRebootFlashEmu();
+u32 findTargetFunction(SceModule *mod, const u32 *signature, unsigned int words);
 
 #endif

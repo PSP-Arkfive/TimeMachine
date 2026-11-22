@@ -12,6 +12,8 @@
 #include <psputils.h>
 #include <kubridge.h>
 #include <systemctrl.h>
+#include "menu_items.h"
+#include "updater.h"
 
 static char flash_table[14][0x4000];
 static int flash_table_size[14];
@@ -24,6 +26,7 @@ static const int SMALL_BUFFER_SIZE = 2500000;
 static int et;
 static int progress_bar, progress_text;
 static volatile int progress;
+static int target_reboot_extracted;
 
 int StartInstallProgress(char *status)
 {
@@ -77,14 +80,12 @@ void FreeFirmwareBuffers(void)
 }
 
 
-#define UPDATER_VER_STR "6.61"
-#define UPDATER "661.PBP"
-#define PSAR_SIZE_661    26848656
 #define PSAR_SIZE_150    10149440
-#define ARK150_TARGET 3
+#define ARK150_TARGET TARGET_150
 
 int Install150Files(u8 *scratch, int scratch_size, u8 *out, u8 *out2, int out_size);
 int Check150Files(u8 *scratch, int scratch_size);
+int getReboot(u8 *input, u8 *output, int size, int capacity, int decompress);
 
 int WriteFile(char *file, void *buf, int size);
 
@@ -93,19 +94,32 @@ extern const char *selected_usbdevice_path;
 extern char boot_path[];
 
 char *TM_PATH[] = {
-	"ms0:/TM/661PRO",
-	"ms0:/TM/661LME",
-	"ms0:/TM/DCARK",
-	"ms0:/TM/DCARK/150",
-	"ms0:/TM/V661ARK",
-	"ms0:/TM/V661EPI",
-	"ms0:/TM/V661TN",
+	[TARGET_661_PRO] = "ms0:/TM/661PRO",
+	[TARGET_661_LME] = "ms0:/TM/661LME",
+	[TARGET_DCARK] = "ms0:/TM/DCARK",
+	[TARGET_150] = "ms0:/TM/DCARK/150",
+	[TARGET_V661_ARK] = "ms0:/TM/V661ARK",
+	[TARGET_V661_EPI] = "ms0:/TM/V661EPI",
+	[TARGET_V661_TN] = "ms0:/TM/V661TN",
+	[TARGET_620_PRO] = "ms0:/TM/620PRO",
+	[TARGET_620_LME] = "ms0:/TM/620LME",
+	[TARGET_639_PRO] = "ms0:/TM/639PRO",
+	[TARGET_639_LME] = "ms0:/TM/639LME",
 };
 
-char *TM_FLASH[] = {
-	"FLASH661.PRO",
-	"FLASH661.LME",
-    "FLASH0.TN",
+static const struct {
+	const char *version;
+	const char *updater;
+	const char *go_updater;
+	const char *archive;
+	int needs_reboot;
+} firmware_files[] = {
+	[TARGET_661_PRO] = { "6.61", "661.PBP", "661GO.PBP", "FLASH661.PRO", 0 },
+	[TARGET_661_LME] = { "6.61", "661.PBP", "661GO.PBP", "FLASH661.LME", 0 },
+	[TARGET_620_PRO] = { "6.20", "620.PBP", "620GO.PBP", "FLASH620.PRO", 1 },
+	[TARGET_620_LME] = { "6.20", "620.PBP", "620GO.PBP", "FLASH620.LME", 1 },
+	[TARGET_639_PRO] = { "6.39", "639.PBP", "639GO.PBP", "FLASH639.PRO", 1 },
+	[TARGET_639_LME] = { "6.39", "639.PBP", "639GO.PBP", "FLASH639.LME", 1 },
 };
 
 
@@ -128,7 +142,7 @@ static int FindTablePath(char *table, int table_size, char *number, char *szOut)
     int i, j, k;
     for (i = 0; i < table_size - 5; i++) {
         if (strncmp(number, table+i, 5) == 0) {
-            for (j = 0, k = 0; ; j++, k++) {
+            for (j = 0, k = 0; i + j + 6 < table_size && k < 126; j++, k++) {
                 if (table[i+j+6] < 0x20) {
                     szOut[k] = 0;
                     break;
@@ -147,8 +161,7 @@ static int FindTablePath(char *table, int table_size, char *number, char *szOut)
                     szOut[k] = table[i+j+6];
                 }
             }
-
-            return 1;
+            return i + j + 6 < table_size && k < 126;
         }
     }
 
@@ -156,22 +169,6 @@ static int FindTablePath(char *table, int table_size, char *number, char *szOut)
 }
 
 
-
-const char* findPath(const char** paths, int count){
-    for (int i=0; i<count; i++){
-        SceIoStat stat;
-        int found = sceIoGetstat(paths[i], &stat);
-        if (found >= 0){
-            return paths[i];
-        }
-    }
-    return NULL;
-}
-
-
-static const char* pbp_paths[] = {
-    "ms0:/661.PBP",
-};
 
 static int FindTablePath150(const char *table, int size, const char *number, char *out)
 {
@@ -244,15 +241,14 @@ static int Extract150Entry(char *name, int size)
 
 static int tmFileIndex(const char *name)
 {
-    static const char *files[][TM_PSP_FILE_COUNT] = {
-        { "/TM/tmctrl.prx", "/TM/661PRO/reboot.prx",
-          "/TM/661PRO/tmhlpr.prx" },
-        { "/TM/tmctrl.prx", "/TM/661LME/reboot.prx",
-          "/TM/661LME/tmhlpr.prx" }
-    };
-    for (int i = 0; i < TM_PSP_FILE_COUNT; i++)
-        if (strcmp(name, files[selected_firmware][i]) == 0)
-            return i;
+    if (strcmp(name, "/TM/tmctrl.prx") == 0)
+        return 0;
+    const char *dir = TM_PATH[selected_firmware] + 4;
+    size_t len = strlen(dir);
+    if (strncmp(name, dir, len) == 0) {
+        if (strcmp(name + len, "/reboot.prx") == 0) return 1;
+        if (strcmp(name + len, "/tmhlpr.prx") == 0) return 2;
+    }
     return -1;
 }
 
@@ -422,6 +418,9 @@ static int ExtractPrxs(int cbFile, SceUID fd)
                 // Files from 01g-11g
                 if (num >= 1 && num <= 11) {
                     flash_table_size[num] = pspDecryptTable(g_dataOut2, g_dataOut, cbExpanded, 4);
+                    if (flash_table_size[num] <= 0 ||
+                        flash_table_size[num] > sizeof(flash_table[num]))
+                        return -1;
                     memcpy(flash_table[num], g_dataOut2, flash_table_size[num]);
                     continue;
                 } else {
@@ -442,19 +441,35 @@ static int ExtractPrxs(int cbFile, SceUID fd)
 								snprintf(szDataPath, sizeof(szDataPath), "%s/%s", TM_PATH[selected_firmware], name + 8);
 
                                 res = WriteFile(szDataPath, g_dataOut2, cbExpanded);
+                                if (res != cbExpanded)
+                                    return -1;
 								char *filename = strrchr(name, '/');
 								if(filename) {
 									filename++;
 								    if(strncmp(filename, "loadexec_", 9) == 0 && strstr(filename, ".prx") != NULL ) {
-                                        int decrypted_size = pspDecryptPRX(g_dataOut2, g_dataOut, cbExpanded);
+                                        int old_firmware = firmware_files[selected_firmware].needs_reboot;
+                                        char model_name[32];
+                                        snprintf(model_name, sizeof(model_name), "loadexec_%02dg.prx",
+                                                 kuKernelGetModel() + 1);
+                                        if (old_firmware && strcmp(filename, model_name) != 0)
+                                            continue;
+                                        int decrypted_size = old_firmware ?
+                                            getReboot(g_dataOut2, g_dataOut, cbExpanded, SMALL_BUFFER_SIZE, 1) :
+                                            pspDecryptPRX(g_dataOut2, g_dataOut, cbExpanded);
 										if (decrypted_size > 0) {
                                            char rebootpath[256];
                                            snprintf(rebootpath,sizeof(rebootpath),"%s/reboot_%s.bin",TM_PATH[selected_firmware],filename + 9);
                                            char *ext = strstr(rebootpath, ".prx");
                                            if (ext)
                                                strcpy(ext, ".bin");
-                                           res = WriteFile(rebootpath, g_dataOut, decrypted_size);
+                                           res = WriteFile(rebootpath, old_firmware ? g_dataOut2 : g_dataOut, decrypted_size);
+                                           if (res != decrypted_size)
+                                               return -1;
+                                           if (old_firmware)
+                                               target_reboot_extracted = 1;
                                        }
+                                       else if (old_firmware)
+                                           return -1;
                                    }
 								}
                             }
@@ -469,6 +484,8 @@ static int ExtractPrxs(int cbFile, SceUID fd)
                                     if (is2g)
                                     {
                                         cbExpanded = pspDecryptPRX(g_dataOut2, g_dataOut, cbExpanded);
+                                        if (cbExpanded <= 0 || cbExpanded > SMALL_BUFFER_SIZE)
+                                            return -1;
                                         memcpy(g_dataOut2, g_dataOut, cbExpanded);
                                     }
 
@@ -486,7 +503,11 @@ static int ExtractPrxs(int cbFile, SceUID fd)
                                     }
 
                                     int cb1 = pspDecryptIPL1(g_dataOut2, g_dataOut, cbExpanded);
+                                    if (cb1 <= 0 || cb1 > SMALL_BUFFER_SIZE)
+                                        return -1;
                                     int cb2 = pspLinearizeIPL2(g_dataOut, g_dataOut2, cb1);
+                                    if (cb2 <= 0 || cb2 > SMALL_BUFFER_SIZE)
+                                        return -1;
 
                                     sceKernelDcacheWritebackAll();
 
@@ -506,6 +527,8 @@ static int ExtractPrxs(int cbFile, SceUID fd)
                                 else
                                 {
                                     cbExpanded = pspDecryptPRX(g_dataOut2, g_dataOut, cbExpanded);
+                                    if (cbExpanded <= 0 || cbExpanded > SMALL_BUFFER_SIZE)
+                                        return -1;
                                     memcpy(g_dataOut2, g_dataOut, cbExpanded);
 
                                     char iplpath[256];
@@ -564,7 +587,7 @@ void createFolders(char *firmware) {
 
 	sceIoMkdir("ms0:/TM", 0777);
 	if (selected_firmware == ARK150_TARGET)
-		sceIoMkdir(TM_PATH[2], 0777);
+		sceIoMkdir(TM_PATH[TARGET_DCARK], 0777);
 	sceIoMkdir(TM_PATH[selected_firmware], 0777);
 
 	for ( int i = 0; i < sizeof(paths)/sizeof(paths[0]); i++) {
@@ -576,11 +599,12 @@ void createFolders(char *firmware) {
 }
 
 
-int Extract661PSAR(void)
+int ExtractFirmware(void)
 {
     StartInstallProgress("Extracting firmware please wait...");
 	memset(flash_table, 0, sizeof(flash_table));
     memset(flash_table_size, 0, sizeof(flash_table_size));
+    target_reboot_extracted = 0;
 
     int is150 = selected_firmware == ARK150_TARGET;
     int model = kuKernelGetModel();
@@ -635,48 +659,73 @@ int Extract661PSAR(void)
     }
 
 	
-	static char firmware[4] = {0};
-	if(selected_firmware == 0)
-		snprintf(firmware, sizeof(firmware), "%s", "PRO");
-	else
-		snprintf(firmware, sizeof(firmware), "%s", "LME");
-
-	createFolders(firmware);
-
-	sceKernelDelayThread(800000);
-
-    SceUID fd;
-
-    const char* pbp_path = NULL;
-    pbp_path = findPath(pbp_paths, NELEMS(pbp_paths));
-
-    fd = pbp_path ? sceIoOpen(pbp_path, PSP_O_RDONLY, 0) : -1;
+    const char *updater = model == PSP_GO ? firmware_files[selected_firmware].go_updater :
+                                           firmware_files[selected_firmware].updater;
+    char pbp_path[32], message[128];
+    snprintf(pbp_path, sizeof(pbp_path), "ms0:/%s", updater);
+    SceUID fd = sceIoOpen(pbp_path, PSP_O_RDONLY, 0);
+    if (fd < 0 && model == PSP_GO) {
+        snprintf(pbp_path, sizeof(pbp_path), "ms0:/%s", firmware_files[selected_firmware].updater);
+        fd = sceIoOpen(pbp_path, PSP_O_RDONLY, 0);
+    }
 	if(fd < 0) {
-		vlfGuiMessageDialog("Place 661.PBP at the root of ms0:.", 1);
+        snprintf(message, sizeof(message), "Place %s at the root of ms0:.", updater);
+		vlfGuiMessageDialog(message, 1);
         return -1;
 	}
 
-    if (sceIoLseek32(fd, 0x577635, PSP_SEEK_SET) != 0x577635 ||
+    unsigned char header[40];
+    SceOff file_size = sceIoLseek(fd, 0, PSP_SEEK_END);
+    int valid = file_size > 0 && file_size <= 0x7fffffff &&
+        sceIoLseek(fd, 0, PSP_SEEK_SET) == 0 &&
+        sceIoRead(fd, header, sizeof(header)) == sizeof(header) &&
+        memcmp(header, "\0PBP", 4) == 0;
+    u32 sfo_start = valid ? updaterWord(header + 8) : 0;
+    u32 sfo_end = valid ? updaterWord(header + 12) : 0;
+    u32 psar_start = valid ? updaterWord(header + 36) : 0;
+    valid = valid && sfo_start >= sizeof(header) && sfo_end >= sfo_start &&
+        sfo_end - sfo_start <= 65536 && psar_start >= sfo_end &&
+        psar_start <= file_size && file_size - psar_start >= PSAR_BUFFER_SIZE &&
+        sceIoLseek(fd, sfo_start, PSP_SEEK_SET) == sfo_start &&
+        sceIoRead(fd, g_dataOut, sfo_end - sfo_start) == sfo_end - sfo_start &&
+        validateUpdaterSfo(g_dataOut, sfo_end - sfo_start,
+                           firmware_files[selected_firmware].version, model == PSP_GO) == 0;
+    if (!valid || sceIoLseek(fd, psar_start, PSP_SEEK_SET) != psar_start ||
         sceIoRead(fd, g_dataPSAR, PSAR_BUFFER_SIZE) != PSAR_BUFFER_SIZE) {
         sceIoClose(fd);
-        vlfGuiMessageDialog("Failed to read 661.PBP.", 1);
+        snprintf(message, sizeof(message), "Invalid or incorrect %s.", updater);
+        vlfGuiMessageDialog(message, 1);
         return -1;
     }
 
+    createFolders(NULL);
     sceKernelDelayThread(10000);
     SetInstallProgress(5);
-    if (ExtractPrxs(PSAR_SIZE_661, fd) < 0) {
+    if (ExtractPrxs((int)(file_size - psar_start), fd) < 0) {
         sceIoClose(fd);
-        vlfGuiMessageDialog("Failed to extract 6.61 firmware.", 1);
+        snprintf(message, sizeof(message), "Failed to extract %s firmware.",
+                 firmware_files[selected_firmware].version);
+        vlfGuiMessageDialog(message, 1);
         return -1;
     }
     sceIoClose(fd);
+    if (firmware_files[selected_firmware].needs_reboot) {
+        char reboot[128];
+        SceIoStat stat;
+        snprintf(reboot, sizeof(reboot), "%s/reboot_%02dg.bin",
+                 TM_PATH[selected_firmware], model + 1);
+        if (!target_reboot_extracted || sceIoGetstat(reboot, &stat) < 0 ||
+            stat.st_size <= 0 || stat.st_size > 0x20000) {
+            vlfGuiMessageDialog("The updater is missing this model's reboot code.", 1);
+            return -1;
+        }
+    }
     SetInstallProgress(85);
 	static char extractText[32];
-	snprintf(extractText, sizeof(extractText), "Extracting %s", TM_FLASH[selected_firmware]);
+	snprintf(extractText, sizeof(extractText), "Extracting %s", firmware_files[selected_firmware].archive);
 	vlfGuiSetText(et, extractText);
 	sceIoChdir(boot_path);
-    if (extractArchive(TM_FLASH[selected_firmware], TM_PATH[selected_firmware], 0, 85, 93) < 0) {
+    if (extractArchive(firmware_files[selected_firmware].archive, TM_PATH[selected_firmware], 0, 85, 93) < 0) {
         vlfGuiMessageDialog("Failed to extract the CFW package.", 1);
         return -1;
     }

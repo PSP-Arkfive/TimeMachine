@@ -15,7 +15,9 @@ ARK150_DIR = $(RESOURCE_DIR)/ARK150
 ARK150_ARCHIVE = $(RESOURCE_DIR)/ARK-150.zip
 ARK150_URL = https://github.com/psp-arkfive/ark-150/releases/download/latest/ARK-150.zip
 
-all: tmctrl tmvita cfw-psp cfw-vpsp installer copy-dist
+all: copy-dist
+
+copy-dist: tmctrl tmvita cfw-psp cfw-vpsp installer
 
 installer:
 	mkdir $(RESOURCE_DIR) || true
@@ -44,12 +46,14 @@ cfw-psp:
 	$(MAKE) -C CFW/PSP/ARK/RebootDC/rebootex
 	$(MAKE) -C CFW/PSP/ARK/RebootDC
 	$(MAKE) -C CFW/PSP/ARK/TimeMachineHelper
-	$(MAKE) -C CFW/PSP/PRO/661/Rebootex
-	$(MAKE) -C CFW/PSP/PRO/661/Reboot
-	$(MAKE) -C CFW/PSP/PRO/661/TimeMachineHelper
-	$(MAKE) -C CFW/PSP/LME/661/Rebootex
-	$(MAKE) -C CFW/PSP/LME/661/Reboot
-	$(MAKE) -C CFW/PSP/LME/661/TimeMachineHelper
+	@set -e; for cfw in PRO LME; do \
+		for fw in 620 639 661; do \
+			dir="CFW/PSP/$$cfw/$$fw"; \
+			$(MAKE) -C "$$dir/Rebootex"; \
+			$(MAKE) -C "$$dir/Reboot"; \
+			$(MAKE) -C "$$dir/TimeMachineHelper"; \
+		done; \
+	done
 
 cfw-vpsp:
 	$(MAKE) -C CFW/vPSP/ARK/rebootex
@@ -63,8 +67,6 @@ cfw-vpsp:
 copy-dist:
 	mkdir -p dist/TM
 	mkdir -p dist/TM/DCARK/150
-	mkdir -p dist/TM/661PRO
-	mkdir -p dist/TM/661LME
 	mkdir -p dist/TM/V661EPI
 	mkdir -p dist/TM/V661ARK
 	mkdir -p dist/TM/V661TN
@@ -75,10 +77,11 @@ copy-dist:
 	cp CFW/PSP/ARK/RebootDC/reboot.prx dist/TM/DCARK/
 	cp CFW/PSP/ARK/150/Reboot150/reboot150.prx dist/TM/DCARK/150/
 	cp CFW/PSP/ARK/150/TimeMachine150/tmctrl150.prx dist/TM/DCARK/150/
-	cp CFW/PSP/PRO/661/Reboot/reboot.prx dist/TM/661PRO/
-	cp CFW/PSP/PRO/661/TimeMachineHelper/tmhlpr.prx dist/TM/661PRO/
-	cp CFW/PSP/LME/661/Reboot/reboot.prx dist/TM/661LME/
-	cp CFW/PSP/LME/661/TimeMachineHelper/tmhlpr.prx dist/TM/661LME/
+	@set -e; for cfw in PRO LME; do for fw in 620 639 661; do \
+		mkdir -p "dist/TM/$$fw$$cfw"; \
+		cp "CFW/PSP/$$cfw/$$fw/Reboot/reboot.prx" \
+		   "CFW/PSP/$$cfw/$$fw/TimeMachineHelper/tmhlpr.prx" "dist/TM/$$fw$$cfw/"; \
+	done; done
 	cp CFW/vPSP/ARK/reboot.prx dist/TM/V661ARK/
 	cp CFW/vPSP/EPI/reboot.prx dist/TM/V661EPI/
 	cp CFW/vPSP/TNV/Reboot/reboot.prx dist/TM/V661TN/
@@ -90,8 +93,8 @@ copy-dist:
 	cp $(LIBS_DIR)/intraFont-vlf.prx dist/PSP/GAME/TimeMachine/
 	cp $(LIBS_DIR)/libpsardumper.prx dist/PSP/GAME/TimeMachine/
 	cp $(LIBS_DIR)/usbdevice.prx dist/PSP/GAME/TimeMachine/
-	cp $(TM_FLASH_DIR)/FLASH661.PRO dist/PSP/GAME/TimeMachine/
-	cp $(TM_FLASH_DIR)/FLASH661.LME dist/PSP/GAME/TimeMachine/
+	cp $(TM_FLASH_DIR)/FLASH620.PRO $(TM_FLASH_DIR)/FLASH639.PRO $(TM_FLASH_DIR)/FLASH661.PRO dist/PSP/GAME/TimeMachine/
+	cp $(TM_FLASH_DIR)/FLASH620.LME $(TM_FLASH_DIR)/FLASH639.LME $(TM_FLASH_DIR)/FLASH661.LME dist/PSP/GAME/TimeMachine/
 	cp $(TM_FLASH_DIR)/FLASH0.TN dist/PSP/GAME/TimeMachine/
 	cp $(ARK150_DIR)/FLASH150.ARK $(ARK150_DIR)/LANG150.ARK dist/PSP/GAME/TimeMachine/
 
@@ -110,6 +113,11 @@ clean:
 	$(MAKE) -C CFW/PSP/LME/661/Rebootex clean
 	$(MAKE) -C CFW/PSP/LME/661/Reboot clean
 	$(MAKE) -C CFW/PSP/LME/661/TimeMachineHelper clean
+	@set -e; for cfw in PRO LME; do for fw in 620 639; do \
+		$(MAKE) -C "CFW/PSP/$$cfw/$$fw/Rebootex" clean; \
+		$(MAKE) -C "CFW/PSP/$$cfw/$$fw/Reboot" clean; \
+		$(MAKE) -C "CFW/PSP/$$cfw/$$fw/TimeMachineHelper" clean; \
+	done; done
 	$(MAKE) -C CFW/vPSP/ARK clean
 	$(MAKE) -C CFW/vPSP/ARK/rebootex clean
 	$(MAKE) -C CFW/vPSP/EPI clean

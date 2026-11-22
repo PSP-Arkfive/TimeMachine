@@ -139,7 +139,7 @@ static int readFile(const char *path, int offset, u8 *buffer, int capacity)
     return result;
 }
 
-static int getReboot(u8 *input, u8 *output, int size, int capacity, int decompress)
+int getReboot(u8 *input, u8 *output, int size, int capacity, int decompress)
 {
     int length = pspDecryptPRX(input, output, size);
     if (length <= 0)

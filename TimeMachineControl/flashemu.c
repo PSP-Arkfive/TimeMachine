@@ -74,13 +74,39 @@ int zlib_inflate(void* dst, int dst_len, void* src){
 
 unsigned int *(* parsealias)(char *) = NULL;
 
+u32 findTargetFunction(SceModule *mod, const u32 *signature, unsigned int words)
+{
+    u32 found = 0;
+    if (!mod || words == 0 || words > mod->text_size / sizeof(u32))
+        return 0;
+    for (u32 offset = 0; offset <= mod->text_size - words * sizeof(u32); offset += 4) {
+        u32 address = mod->text_addr + offset;
+        if (memcmp((const void *)address, signature, words * sizeof(u32)) == 0) {
+            if (found)
+                return 0;
+            found = address;
+        }
+    }
+    return found;
+}
+
 SceIoDeviceEntry *getDeviceEntry(char *alias)
 {
     if (!parsealias)
     {
          SceModule *mod = sceKernelFindModuleByName("sceIOFileManager");
          if (!mod) return NULL;
-         parsealias = (void *)(mod->text_addr + 0x35D0);
+         if (!strncmp(tm_path, "ms0:/TM/620", 11) ||
+             !strncmp(tm_path, "ms0:/TM/639", 11)) {
+             static const u32 signature[] = {
+                 0x27bdffd0, 0xafb00020, 0x00808021, 0xafbf002c,
+                 0xafb20028, 0xafb10024, 0x80820000, 0x24040020
+             };
+             parsealias = (void *)findTargetFunction(mod, signature, sizeof(signature) / sizeof(signature[0]));
+             if (!parsealias) return NULL;
+         } else {
+             parsealias = (void *)(mod->text_addr + 0x35D0);
+         }
     }
     
     unsigned int *u = parsealias(alias);
@@ -647,6 +673,12 @@ int InstallFlashEmu()
 {
     if (!installed)
     {
+        if (!strncmp(tm_path, "ms0:/TM/620", 11) ||
+            !strncmp(tm_path, "ms0:/TM/639", 11)) {
+            getDeviceEntry("ms0:");
+            if (!parsealias)
+                return -1;
+        }
         int res = ciso_open(&g_ciso_file);
         sceIoAddDrv(&lflashDrv);
         sceIoAddDrv(&flashFatDrv);

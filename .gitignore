@@ -6,3 +6,12 @@
 
 PRO/661/Rebootex/rebootex.h
 PRO/661/TimeMachineControl/*.h
+
+/CFW/**/rebootex.h
+/CFW/**/payload.h
+/CFW/PSP/ARK/150/TimeMachine150/tmctrl.h
+/TimeMachineControl/cptbl.h
+/Installer/EBOOT.PBP
+/Installer/PARAM.SFO
+/dist/
+/tmp/

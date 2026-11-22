@@ -12,3 +12,11 @@
 /TM/661PRO/tmhlpr.prx,dist/TM/661PRO/tmhlpr.prx
 /TM/661LME/reboot.prx,dist/TM/661LME/reboot.prx
 /TM/661LME/tmhlpr.prx,dist/TM/661LME/tmhlpr.prx
+/TM/620PRO/reboot.prx,dist/TM/620PRO/reboot.prx
+/TM/620PRO/tmhlpr.prx,dist/TM/620PRO/tmhlpr.prx
+/TM/620LME/reboot.prx,dist/TM/620LME/reboot.prx
+/TM/620LME/tmhlpr.prx,dist/TM/620LME/tmhlpr.prx
+/TM/639PRO/reboot.prx,dist/TM/639PRO/reboot.prx
+/TM/639PRO/tmhlpr.prx,dist/TM/639PRO/tmhlpr.prx
+/TM/639LME/reboot.prx,dist/TM/639LME/reboot.prx
+/TM/639LME/tmhlpr.prx,dist/TM/639LME/tmhlpr.prx

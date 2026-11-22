@@ -55,7 +55,18 @@ int OnModuleStart(SceModule *mod)
     }
     else if (strcmp(moduleName, "sceMediaSync") == 0)
     {
-        MAKE_DUMMY_FUNCTION_RETURN_0(mod->text_addr + 0x135c);
+        u32 address = mod->text_addr + 0x135c;
+        if (!strncmp(tm_path, "ms0:/TM/620", 11) ||
+            !strncmp(tm_path, "ms0:/TM/639", 11)) {
+            static const u32 signature[] = {
+                0x27bdfe60, 0x3c037361, 0x3c052f3a, 0x3c09002f,
+                0x34686c66, 0x34a73068, 0x3526646b, 0x27a40170
+            };
+            address = findTargetFunction(mod, signature, sizeof(signature) / sizeof(signature[0]));
+            if (!address)
+                return -1;
+        }
+        MAKE_DUMMY_FUNCTION_RETURN_0(address);
         ClearCaches();
     }
 
@@ -70,7 +81,8 @@ int module_start(SceSize args, void *argp)
 
     tm_path = getTmPath();
     psp_model = sceKernelGetModel();
-    InstallFlashEmu();
+    if (InstallFlashEmu() < 0)
+        return -1;
     previous = sctrlHENSetStartModuleHandler(OnModuleStart);
     ClearCaches();
 

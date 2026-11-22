@@ -31,6 +31,7 @@ static const FirmwareOption *available_firmwares[FIRMWARE_OPTION_COUNT];
 static char *firmware_names[FIRMWARE_OPTION_COUNT];
 static int cfw_count;
 static int firmware_count;
+static char *cefs[] = { "Install Time Machine for PS Vita" };
 
 int OnCancelInstall(int enter) {
 
@@ -38,7 +39,7 @@ int OnCancelInstall(int enter) {
 		g_running = 0;
 	return 0;
 }
-extern int Extract661PSAR(void);
+extern int ExtractFirmware(void);
 extern void FreeFirmwareBuffers(void);
 extern void RemoveInstallProgress(void);
 extern void InstallVita();
@@ -87,7 +88,7 @@ int install_thread(SceSize args, void *argp) {
 		g_running = 0;
 	} else {
 		static int result;
-		result = Extract661PSAR();
+		result = ExtractFirmware();
 		FreeFirmwareBuffers();
 		if (result == 0)
 			sceKernelDelayThread(500000);
