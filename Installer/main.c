@@ -40,6 +40,7 @@ int OnCancelInstall(int enter) {
 	return 0;
 }
 extern int ExtractFirmware(void);
+extern char *GetFirmwareExtractError(void);
 extern void FreeFirmwareBuffers(void);
 extern void RemoveInstallProgress(void);
 extern void InstallVita();
@@ -52,6 +53,7 @@ static int OnPreviousPage(int page) {
 }
 
 static int finish_text;
+static char finish_message[160];
 static char *finish_options[] = { "Back to main menu", "Exit" };
 
 static int OnReturnToMainMenu(void *param) {
@@ -75,9 +77,15 @@ static int OnInstallChoice(int sel) {
 
 static int OnInstallFinish(void *param) {
 	int result = *(int *)param;
+	char *error = GetFirmwareExtractError();
 	RemoveInstallProgress();
-	finish_text = vlfGuiAddText(20, 50, result == 0 ?
-		"Installation complete." : "Installation failed.");
+	if (result == 0)
+		snprintf(finish_message, sizeof(finish_message), "Installation complete.");
+	else if (error && error[0])
+		snprintf(finish_message, sizeof(finish_message), "Error: %.150s", error);
+	else
+		snprintf(finish_message, sizeof(finish_message), "Installation failed.");
+	finish_text = vlfGuiAddText(20, 50, finish_message);
 	vlfGuiCentralMenu(2, finish_options, 0, OnInstallChoice, 10, 10);
 	return VLF_EV_RET_REMOVE_HANDLERS;
 }
@@ -223,6 +231,9 @@ int app_main(int args, char *argv[]) {
 		mod = LoadStartModule("pspdecrypt.prx", PSP_MEMORY_PARTITION_KERNEL);
 		if(mod<0)
 			vlfGuiMessageDialog("pspdecrypt.prx failed to load", 0);
+		mod = LoadStartModule("tmtype6decrypt.prx", PSP_MEMORY_PARTITION_KERNEL);
+		if(mod<0)
+			vlfGuiMessageDialog("tmtype6decrypt.prx failed to load", 0);
 	}
 	
 	main_menu();

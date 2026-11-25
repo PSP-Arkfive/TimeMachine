@@ -5,8 +5,12 @@
 #include <psppower.h>
 #include <pspdecrypt.h>
 #include <psprebootex.h>
+#include <kubridge.h>
+#include <systemctrl.h>
 #include <systemctrl_ark.h>
 #include <vlf.h>
+
+#define TYPE6_DECRYPT_NID 0x6C390001
 
 extern char boot_path[];
 void SetInstallProgress(int value);
@@ -139,29 +143,148 @@ static int readFile(const char *path, int offset, u8 *buffer, int capacity)
     return result;
 }
 
+static char reboot_error[192];
+
+const char *GetRebootError(void)
+{
+    return reboot_error;
+}
+
+static int rebootFailure(const char *stage, int result)
+{
+    snprintf(reboot_error, sizeof(reboot_error), "%s (result=%d)",
+             stage, result);
+    return result < 0 ? result : -1;
+}
+
+static int decryptType6PRX(const u8 *input, u8 *output, int size, int capacity)
+{
+    static u32 decrypt_function;
+    struct KernelCallArg args;
+    int result;
+
+    if (!decrypt_function)
+        decrypt_function = sctrlHENFindFunction("TM_Type6Decrypt",
+                                                "tmType6Decrypt_driver",
+                                                TYPE6_DECRYPT_NID);
+    if (!decrypt_function)
+        return -100;
+
+    memset(&args, 0, sizeof(args));
+    args.arg1 = (u32)input;
+    args.arg2 = (u32)output;
+    args.arg3 = (u32)size;
+    args.arg4 = (u32)capacity;
+
+    result = kuKernelCall((void *)decrypt_function, &args);
+    if (result < 0)
+        return result;
+    return (int)args.ret1;
+}
+
+static int isType6Tag(const u8 *input, int size)
+{
+    u32 tag;
+
+    if (!input || size < 0xD4)
+        return 0;
+    memcpy(&tag, input + 0xD0, sizeof(tag));
+    return tag == 0x4C948AF0 || tag == 0x4C948BF0 ||
+           tag == 0x4C948CF0 || tag == 0x4C948DF0;
+}
+
+static int decryptPRXWithType6Fallback(u8 *input, u8 *output, int size,
+                                       int capacity, int *prx_result,
+                                       int *type6_result, u8 type6_debug[0x30])
+{
+    *prx_result = 0;
+    *type6_result = 0;
+    memset(type6_debug, 0, 0x30);
+    if (isType6Tag(input, size)) {
+        *type6_result = decryptType6PRX(input, output, size, capacity);
+        if (*type6_result > 0)
+            return *type6_result;
+        if (*type6_result == -6)
+            memcpy(type6_debug, output, 0x30);
+    }
+
+    *prx_result = pspDecryptPRX(input, output, size);
+    if (*prx_result > 0)
+        return *prx_result;
+    return *type6_result != 0 ? *type6_result : *prx_result;
+}
+
 int getReboot(u8 *input, u8 *output, int size, int capacity, int decompress)
 {
-    int length = pspDecryptPRX(input, output, size);
-    if (length <= 0)
-        return -1;
+    reboot_error[0] = '\0';
+    int prx_result;
+    int type6_result;
+    u8 type6_debug[0x30];
+    int length = decryptPRXWithType6Fallback(input, output, size, capacity,
+                                             &prx_result, &type6_result,
+                                             type6_debug);
+    if (length <= 0) {
+        u32 header = 0;
+        u32 tag = 0;
+        u32 prx_size = 0;
+        u32 data_size = 0;
+        if (size >= (int)sizeof(header))
+            memcpy(&header, input, sizeof(header));
+        if (size >= 0x30)
+            memcpy(&prx_size, input + 0x2C, sizeof(prx_size));
+        if (size >= 0xB4)
+            memcpy(&data_size, input + 0xB0, sizeof(data_size));
+        if (size >= 0xD4)
+            memcpy(&tag, input + 0xD0, sizeof(tag));
+        if (type6_result == -6)
+            snprintf(reboot_error, sizeof(reboot_error),
+                     "Outer PRX decrypt failed (psp=%d type6=%d size=%d tag=%08lX sha=%02X%02X%02X%02X/%02X%02X%02X%02X seed=%02X%02X%02X%02X id=%02X%02X%02X%02X)",
+                     prx_result, type6_result, size, (unsigned long)tag,
+                     type6_debug[0], type6_debug[1], type6_debug[2],
+                     type6_debug[3], type6_debug[0x14], type6_debug[0x15],
+                     type6_debug[0x16], type6_debug[0x17], type6_debug[0x28],
+                     type6_debug[0x29], type6_debug[0x2A], type6_debug[0x2B],
+                     type6_debug[0x2C], type6_debug[0x2D], type6_debug[0x2E],
+                     type6_debug[0x2F]);
+        else if (type6_result != 0)
+            snprintf(reboot_error, sizeof(reboot_error),
+                     "Outer PRX decrypt failed (psp=%d type6=%d size=%d hdr=%08lX tag=%08lX prx=%lu data=%lu)",
+                     prx_result, type6_result, size, (unsigned long)header,
+                     (unsigned long)tag, (unsigned long)prx_size,
+                     (unsigned long)data_size);
+        else
+            snprintf(reboot_error, sizeof(reboot_error),
+                     "Outer PRX decrypt failed (result=%d size=%d hdr=%08lX tag=%08lX prx=%lu data=%lu)",
+                     length, size, (unsigned long)header, (unsigned long)tag,
+                     (unsigned long)prx_size, (unsigned long)data_size);
+        return length < 0 ? length : -1;
+    }
     length = pspDecompress(output, input, capacity);
     if (length <= 0)
-        return -1;
+        return rebootFailure("Outer PRX decompress failed", length);
     for (int i = 0; i + 0x30 <= length; i++) {
         if (memcmp(input + i, "~PSP", 4) == 0) {
             u32 inner_size;
             memcpy(&inner_size, input + i + 0x2c, sizeof(inner_size));
             if (inner_size > (u32)(length - i))
-                return -1;
-            length = pspDecryptPRX(input + i, output, inner_size);
+                return rebootFailure("Inner PRX size is invalid", -1);
+            length = decryptPRXWithType6Fallback(input + i, output, inner_size,
+                                                  capacity, &prx_result,
+                                                  &type6_result, type6_debug);
             if (length <= 0)
-                return -1;
+                return rebootFailure(type6_result != 0 ?
+                                     "Inner PRX type-6 decrypt failed" :
+                                     "Inner PRX decrypt failed",
+                                     type6_result != 0 ? type6_result :
+                                     prx_result);
             if (decompress)
                 length = pspDecompress(output, input, capacity);
-            return length > 0 ? length : -1;
+            if (length <= 0)
+                return rebootFailure("Inner PRX decompress failed", length);
+            return length;
         }
     }
-    return -1;
+    return rebootFailure("Inner reboot PRX was not found", -1);
 }
 
 static int patchReboot(const char *path, const u8 *header, int region_size,

@@ -32,6 +32,7 @@ installer:
 	unzip -o "$(TM_FLASH_DIR)/LME-3.zip" -d "$(TM_FLASH_DIR)"
 	unzip -o "$(TM_FLASH_DIR)/TN-V2.zip" -d "$(TM_FLASH_DIR)"
 	unzip -o "$(ARK150_ARCHIVE)" FLASH150.ARK LANG150.ARK -d "$(ARK150_DIR)"
+	$(MAKE) -C Type6Decrypt
 	$(MAKE) -C Installer
 
 tmctrl:
@@ -88,6 +89,7 @@ copy-dist:
 	cp CFW/vPSP/TNV/TimeMachineHelper/tmhlpr.prx dist/TM/V661TN/
 	$(PY) $(BUILDTOOLS)/pack/pack.py -p dist/TM.PKG package.txt -s
 	cp Installer/EBOOT.PBP dist/TM.PKG dist/PSP/GAME/TimeMachine/
+	cp Type6Decrypt/tmtype6decrypt.prx dist/PSP/GAME/TimeMachine/
 	cp $(LIBS_DIR)/pspdecrypt.prx dist/PSP/GAME/TimeMachine/
 	cp $(LIBS_DIR)/vlf.prx dist/PSP/GAME/TimeMachine/
 	cp $(LIBS_DIR)/intraFont-vlf.prx dist/PSP/GAME/TimeMachine/
@@ -99,6 +101,7 @@ copy-dist:
 	cp $(ARK150_DIR)/FLASH150.ARK $(ARK150_DIR)/LANG150.ARK dist/PSP/GAME/TimeMachine/
 
 clean:
+	$(MAKE) -C Type6Decrypt clean
 	$(MAKE) -C Installer clean
 	$(MAKE) -C TimeMachineControl clean
 	$(MAKE) -C TimeMachineControlVita clean

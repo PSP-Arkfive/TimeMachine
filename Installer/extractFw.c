@@ -27,6 +27,8 @@ static int et;
 static int progress_bar, progress_text;
 static volatile int progress;
 static int target_reboot_extracted;
+static char firmware_extract_error[192];
+static int extract_log_initialized;
 
 int StartInstallProgress(char *status)
 {
@@ -86,6 +88,7 @@ void FreeFirmwareBuffers(void)
 int Install150Files(u8 *scratch, int scratch_size, u8 *out, u8 *out2, int out_size);
 int Check150Files(u8 *scratch, int scratch_size);
 int getReboot(u8 *input, u8 *output, int size, int capacity, int decompress);
+const char *GetRebootError(void);
 
 int WriteFile(char *file, void *buf, int size);
 
@@ -106,6 +109,47 @@ char *TM_PATH[] = {
 	[TARGET_639_PRO] = "ms0:/TM/639PRO",
 	[TARGET_639_LME] = "ms0:/TM/639LME",
 };
+
+static int writeExtractLog(const char *message)
+{
+    char path[256];
+    if (snprintf(path, sizeof(path), "%s/extract.log",
+                 TM_PATH[selected_firmware]) >= (int)sizeof(path))
+        return -1;
+
+    int flags = PSP_O_WRONLY | PSP_O_CREAT;
+    if (extract_log_initialized) {
+        flags |= PSP_O_APPEND;
+    } else {
+        sceIoRemove(path);
+        flags |= PSP_O_TRUNC;
+    }
+
+    SceUID fd = sceIoOpen(path, flags, 0777);
+    if (fd < 0)
+        return fd;
+
+    int length = strlen(message);
+    int written = sceIoWrite(fd, message, length);
+    int close_result = sceIoClose(fd);
+    if (written != length || close_result < 0)
+        return -1;
+
+    extract_log_initialized = 1;
+    return 0;
+}
+
+char *GetFirmwareExtractError(void)
+{
+    return firmware_extract_error;
+}
+
+static int failExtractPrxs(const char *stage, int result)
+{
+    snprintf(firmware_extract_error, sizeof(firmware_extract_error),
+             "%s (result=%d)", stage, result);
+    return -1;
+}
 
 static const struct {
 	const char *version;
@@ -359,10 +403,9 @@ static int ExtractPrxs(int cbFile, SceUID fd)
 {
     int psar_pos = 0;
 
-    if(pspPSARInit(g_dataPSAR, g_dataOut, g_dataOut2) < 0) {
-		vlfGuiMessageDialog("PSAR Init Failed...", 1);
-        return -1;
-	}
+    int init_result = pspPSARInit(g_dataPSAR, g_dataOut, g_dataOut2);
+    if (init_result < 0)
+        return failExtractPrxs("PSAR initialization failed", init_result);
 
     while (1)
     {
@@ -376,16 +419,39 @@ static int ExtractPrxs(int cbFile, SceUID fd)
         if (res < 0)
         {
             if (selected_firmware == ARK150_TARGET)
-                return -1;
+                return failExtractPrxs("Unexpected PSAR end while extracting 1.50", res);
             int dpos = pos-psar_pos;
-            if (dpos <= 0 || dpos > PSAR_BUFFER_SIZE)
+            if (dpos <= 0 || dpos > PSAR_BUFFER_SIZE) {
+                snprintf(firmware_extract_error, sizeof(firmware_extract_error),
+                         "Invalid PSAR buffer refill (position=%d previous=%d size=%d)",
+                         pos, psar_pos, PSAR_BUFFER_SIZE);
                 return -1;
+            }
             psar_pos = pos;
 
             memmove(g_dataPSAR, g_dataPSAR+dpos, PSAR_BUFFER_SIZE-dpos);
 
-            if (sceIoRead(fd, g_dataPSAR+(PSAR_BUFFER_SIZE-dpos), dpos) <= 0)
+            u8 *refill = g_dataPSAR + (PSAR_BUFFER_SIZE - dpos);
+            memset(refill, 0, dpos);
+            int total_read = 0;
+            int read_size;
+            int read_error = 0;
+            while (total_read < dpos) {
+                read_size = sceIoRead(fd, refill + total_read, dpos - total_read);
+                if (read_size < 0) {
+                    read_error = read_size;
+                    break;
+                }
+                if (read_size == 0)
+                    break;
+                total_read += read_size;
+            }
+            if (read_error < 0 || total_read == 0) {
+                snprintf(firmware_extract_error, sizeof(firmware_extract_error),
+                         "PSAR buffer refill read failed (read=%d requested=%d position=%d error=%d)",
+                         total_read, dpos, psar_pos, read_error);
                 return -1;
+            }
 
             pspPSARSetBufferPosition(psar_pos);
 
@@ -406,7 +472,7 @@ static int ExtractPrxs(int cbFile, SceUID fd)
         {
             if (selected_firmware == ARK150_TARGET) {
                 if (Extract150Entry(name, cbExpanded) < 0)
-                    return -1;
+                    return failExtractPrxs("1.50 PSAR entry extraction failed", cbExpanded);
                 scePowerTick(0);
                 continue;
             }
@@ -417,10 +483,53 @@ static int ExtractPrxs(int cbFile, SceUID fd)
 
                 // Files from 01g-11g
                 if (num >= 1 && num <= 11) {
+                    u32 table_input_header = 0;
+                    u32 table_input_tag = 0;
+                    if (cbExpanded >= (int)sizeof(table_input_header))
+                        memcpy(&table_input_header, g_dataOut2,
+                               sizeof(table_input_header));
+                    if (cbExpanded >= 0xD4)
+                        memcpy(&table_input_tag, g_dataOut2 + 0xD0,
+                               sizeof(table_input_tag));
                     flash_table_size[num] = pspDecryptTable(g_dataOut2, g_dataOut, cbExpanded, 4);
                     if (flash_table_size[num] <= 0 ||
-                        flash_table_size[num] > sizeof(flash_table[num]))
+                        flash_table_size[num] > sizeof(flash_table[num])) {
+                        u32 table_header = 0;
+                        u32 table_tag = 0;
+                        if (cbExpanded >= (int)sizeof(table_header))
+                            memcpy(&table_header, g_dataOut, sizeof(table_header));
+                        if (cbExpanded >= 0xD4)
+                            memcpy(&table_tag, g_dataOut + 0xD0, sizeof(table_tag));
+                        int prx_result = pspDecryptPRX(g_dataOut, g_dataOut2,
+                                                       cbExpanded);
+                        if (num == 10 || num == 11) {
+                            char table_warning[192];
+                            snprintf(table_warning, sizeof(table_warning),
+                                     "Table %d decrypt=%d prx=%d size=%d in=%08lX/%08lX out=%08lX/%08lX; skipping %dg table\n",
+                                     num, flash_table_size[num], prx_result, cbExpanded,
+                                     (unsigned long)table_input_header,
+                                     (unsigned long)table_input_tag,
+                                     (unsigned long)table_header,
+                                     (unsigned long)table_tag, num);
+                            if (writeExtractLog(table_warning) < 0) {
+                                snprintf(firmware_extract_error,
+                                         sizeof(firmware_extract_error),
+                                         "Table %d failed; could not log skipped table",
+                                         num);
+                                return -1;
+                            }
+                            flash_table_size[num] = 0;
+                            continue;
+                        }
+                        snprintf(firmware_extract_error, sizeof(firmware_extract_error),
+                                 "Table %d decrypt=%d prx=%d size=%d in=%08lX/%08lX out=%08lX/%08lX",
+                                 num, flash_table_size[num], prx_result, cbExpanded,
+                                 (unsigned long)table_input_header,
+                                 (unsigned long)table_input_tag,
+                                 (unsigned long)table_header,
+                                 (unsigned long)table_tag);
                         return -1;
+                    }
                     memcpy(flash_table[num], g_dataOut2, flash_table_size[num]);
                     continue;
                 } else {
@@ -441,18 +550,18 @@ static int ExtractPrxs(int cbFile, SceUID fd)
 								snprintf(szDataPath, sizeof(szDataPath), "%s/%s", TM_PATH[selected_firmware], name + 8);
 
                                 res = WriteFile(szDataPath, g_dataOut2, cbExpanded);
-                                if (res != cbExpanded)
+                                if (res != cbExpanded) {
+                                    snprintf(firmware_extract_error,
+                                             sizeof(firmware_extract_error),
+                                             "Firmware file write failed (%.40s result=%d expected=%d)",
+                                             szDataPath, res, cbExpanded);
                                     return -1;
+                                }
 								char *filename = strrchr(name, '/');
 								if(filename) {
 									filename++;
 								    if(strncmp(filename, "loadexec_", 9) == 0 && strstr(filename, ".prx") != NULL ) {
                                         int old_firmware = firmware_files[selected_firmware].needs_reboot;
-                                        char model_name[32];
-                                        snprintf(model_name, sizeof(model_name), "loadexec_%02dg.prx",
-                                                 kuKernelGetModel() + 1);
-                                        if (old_firmware && strcmp(filename, model_name) != 0)
-                                            continue;
                                         int decrypted_size = old_firmware ?
                                             getReboot(g_dataOut2, g_dataOut, cbExpanded, SMALL_BUFFER_SIZE, 1) :
                                             pspDecryptPRX(g_dataOut2, g_dataOut, cbExpanded);
@@ -463,13 +572,25 @@ static int ExtractPrxs(int cbFile, SceUID fd)
                                            if (ext)
                                                strcpy(ext, ".bin");
                                            res = WriteFile(rebootpath, old_firmware ? g_dataOut2 : g_dataOut, decrypted_size);
-                                           if (res != decrypted_size)
+                                           if (res != decrypted_size) {
+                                               snprintf(firmware_extract_error,
+                                                        sizeof(firmware_extract_error),
+                                                        "Reboot file write failed (%.40s result=%d expected=%d)",
+                                                        rebootpath, res, decrypted_size);
                                                return -1;
+                                           }
                                            if (old_firmware)
                                                target_reboot_extracted = 1;
                                        }
-                                       else if (old_firmware)
+                                       else if (old_firmware) {
+                                           const char *detail = GetRebootError();
+                                           snprintf(firmware_extract_error,
+                                                    sizeof(firmware_extract_error),
+                                                    "%s: %s", filename,
+                                                    detail && detail[0] ? detail :
+                                                    "reboot extraction failed");
                                            return -1;
+                                       }
                                    }
 								}
                             }
@@ -485,7 +606,8 @@ static int ExtractPrxs(int cbFile, SceUID fd)
                                     {
                                         cbExpanded = pspDecryptPRX(g_dataOut2, g_dataOut, cbExpanded);
                                         if (cbExpanded <= 0 || cbExpanded > SMALL_BUFFER_SIZE)
-                                            return -1;
+                                            return failExtractPrxs("02g IPL PRX decrypt failed",
+                                                                   cbExpanded);
                                         memcpy(g_dataOut2, g_dataOut, cbExpanded);
                                     }
 
@@ -504,10 +626,10 @@ static int ExtractPrxs(int cbFile, SceUID fd)
 
                                     int cb1 = pspDecryptIPL1(g_dataOut2, g_dataOut, cbExpanded);
                                     if (cb1 <= 0 || cb1 > SMALL_BUFFER_SIZE)
-                                        return -1;
+                                        return failExtractPrxs("IPL stage 1 decrypt failed", cb1);
                                     int cb2 = pspLinearizeIPL2(g_dataOut, g_dataOut2, cb1);
                                     if (cb2 <= 0 || cb2 > SMALL_BUFFER_SIZE)
-                                        return -1;
+                                        return failExtractPrxs("IPL stage 2 linearization failed", cb2);
 
                                     sceKernelDcacheWritebackAll();
 
@@ -528,7 +650,7 @@ static int ExtractPrxs(int cbFile, SceUID fd)
                                 {
                                     cbExpanded = pspDecryptPRX(g_dataOut2, g_dataOut, cbExpanded);
                                     if (cbExpanded <= 0 || cbExpanded > SMALL_BUFFER_SIZE)
-                                        return -1;
+                                        return failExtractPrxs("IPL PRX decrypt failed", cbExpanded);
                                     memcpy(g_dataOut2, g_dataOut, cbExpanded);
 
                                     char iplpath[256];
@@ -605,6 +727,8 @@ int ExtractFirmware(void)
 	memset(flash_table, 0, sizeof(flash_table));
     memset(flash_table_size, 0, sizeof(flash_table_size));
     target_reboot_extracted = 0;
+	firmware_extract_error[0] = '\0';
+	extract_log_initialized = 0;
 
     int is150 = selected_firmware == ARK150_TARGET;
     int model = kuKernelGetModel();
@@ -699,16 +823,30 @@ int ExtractFirmware(void)
     }
 
     createFolders(NULL);
+    char log_start[128];
+    snprintf(log_start, sizeof(log_start), "Starting %s firmware extraction.\n",
+             firmware_files[selected_firmware].version);
+    int log_result = writeExtractLog(log_start);
+    if (log_result < 0) {
+        snprintf(firmware_extract_error, sizeof(firmware_extract_error),
+                 "Could not initialize extract.log (error=%d)", log_result);
+        sceIoClose(fd);
+        return -1;
+    }
     sceKernelDelayThread(10000);
     SetInstallProgress(5);
     if (ExtractPrxs((int)(file_size - psar_start), fd) < 0) {
         sceIoClose(fd);
-        snprintf(message, sizeof(message), "Failed to extract %s firmware.",
-                 firmware_files[selected_firmware].version);
-        vlfGuiMessageDialog(message, 1);
+        if (!firmware_extract_error[0])
+            snprintf(firmware_extract_error, sizeof(firmware_extract_error),
+                     "Firmware file extraction failed (no stage detail)");
+        char log_error[224];
+        snprintf(log_error, sizeof(log_error), "%s\n", firmware_extract_error);
+        writeExtractLog(log_error);
         return -1;
     }
     sceIoClose(fd);
+    writeExtractLog("Firmware files extracted successfully.\n");
     if (firmware_files[selected_firmware].needs_reboot) {
         char reboot[128];
         SceIoStat stat;
